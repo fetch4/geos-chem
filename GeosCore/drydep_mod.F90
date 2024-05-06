@@ -4677,7 +4677,7 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
 
-#ifdef MODEL_WRF
+#ifdef MODEL_WRF || defined( MODEL_GISS )
     ! If the dry deposition module has already been initialized,
     ! the arrays do not need to be allocated again, as they are only
     ! dependent on the chemistry configuration (State_Chm%nDryDep)
