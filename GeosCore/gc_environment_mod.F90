@@ -354,7 +354,7 @@ CONTAINS
     ! Allocate State_Grid arrays
     CALL Allocate_State_Grid( Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Compute_Grid"!'
+       ErrMsg = 'Error encountered in "Allocate_State_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
