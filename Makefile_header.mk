@@ -497,14 +497,20 @@ endif
 ###                                                                         ###
 ###############################################################################
 
+# Define GC_BIN, GC_INCLUDE, and GC_LIB based on the home directory for NetCDF-C
+# (not netCDF-Fortran).
+GC_BIN=${NETCDF_C_HOME}/bin
+GC_INCLUDE=${NETCDF_C_HOME}/include
+GC_LIB=${NETCDF_C_HOME}/lib
+
+# Define versions for netCDF-Fortran, too.
+GC_F_BIN=${NETCDF_F_HOME}/bin
+GC_F_INCLUDE=${NETCDF_F_HOME}/include
+GC_F_LIB=${NETCDF_F_HOME}/lib
+
 # Test if we have found the nf-config file, which indicates a separate
 # netCDF-Fortran build.  IS_NF_CONFIG=0 indicates that we found nf-config.
 IS_NF_CONFIG         :=$(shell test -f $(GC_F_BIN)/nf-config; echo $$?)
-
-# Define GC_BIN and GC_INCLUDE based on the home directory for netCDF-C (not
-# netCDF-Fortran).
-GC_BIN=${NETCDF_HOME}/bin
-GC_INCLUDE=${NETCDF_HOME}/include
 
 # Test for GEOS-Chem-Libraries or onboard netCDF libraries
 ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
@@ -512,7 +518,7 @@ ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
   #-----------------------------------------------------------------------
   # %%%%% We are using the GEOS-Chem-Libraries package %%%%%
   #
-  # Both netCDF-Fortran and netCDF-C library files are in the same path
+  # Both netCDF-Fortran and netCDF-C library paths are accounted for.
   #-----------------------------------------------------------------------
 
   # NetCDF include command: 1 library path
@@ -524,7 +530,7 @@ ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
   NC_LINK_CMD        := $(shell $(GC_F_BIN)/nf-config --flibs)
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
   NC_LINK_CMD        := $(filter -l%,$(NC_LINK_CMD))
-  NC_LINK_CMD        :=-L$(GC_LIB) $(NC_LINK_CMD)
+  NC_LINK_CMD        :=-L$(GC_LIB) -L$(GC_F_LIB) $(NC_LINK_CMD)
 
 else
 
@@ -543,6 +549,7 @@ else
     # NetCDF link command: 2 sets of link commands
     NC_LINK_CMD      := $(shell $(GC_F_BIN)/nf-config --flibs)
     NC_LINK_CMD      += $(shell $(GC_BIN)/nc-config --libs)
+    NC_LINK_CMD      +=-L$(GC_LIB) -L$(GC_F_LIB) $(NC_LINK_CMD)
 
   else
 
@@ -558,6 +565,7 @@ else
 
     # NetCDF link command: 1 set of link commands
     NC_LINK_CMD      := $(shell $(GC_BIN)/nc-config --libs)
+    NC_LINK_CMD      +=-L$(GC_LIB) $(NC_LINK_CMD)
 
   endif
 
