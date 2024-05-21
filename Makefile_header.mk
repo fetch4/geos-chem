@@ -499,11 +499,13 @@ endif
 
 # Define GC_BIN, GC_INCLUDE, and GC_LIB based on the home directory for NetCDF-C
 # (not netCDF-Fortran).
+# NOTE: NETCDF_C_HOME must be set as an environment variable.
 GC_BIN=${NETCDF_C_HOME}/bin
 GC_INCLUDE=${NETCDF_C_HOME}/include
 GC_LIB=${NETCDF_C_HOME}/lib
 
 # Define versions for netCDF-Fortran, too.
+NETCDF_F_HOME=${NETCDFHOME} # NOTE: Read from .modelErc
 GC_F_BIN=${NETCDF_F_HOME}/bin
 GC_F_INCLUDE=${NETCDF_F_HOME}/include
 GC_F_LIB=${NETCDF_F_HOME}/lib
