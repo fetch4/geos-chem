@@ -27,7 +27,7 @@ target_include_directories(GEOSChemBuildProperties
 	INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/mod
 )
 
-# Append GEOS-Chem's environment varialbes to CMAKE_PREFIX_PATH
+# Append GEOS-Chem's environment variables to CMAKE_PREFIX_PATH
 list(APPEND CMAKE_PREFIX_PATH
 	# Possible NetCDF environment variables
 	$ENV{NetCDF_F_ROOT}         $ENV{NetCDF_C_ROOT}     $ENV{NetCDF_ROOT}
@@ -35,7 +35,7 @@ list(APPEND CMAKE_PREFIX_PATH
 	$ENV{NetCDF_Fortran_ROOT}
 	$ENV{NETCDF_FORTRAN_ROOT}
 
-	# Possible GEOS-Chem's environmnet variables
+	# Possible GEOS-Chem's environment variables
 	$ENV{GC_F_BIN} 		$ENV{GC_BIN}
 	$ENV{GC_F_INCLUDE} 	$ENV{GC_INCLUDE}
 	$ENV{GC_F_LIB} 		$ENV{GC_LIB}

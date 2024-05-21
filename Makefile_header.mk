@@ -501,6 +501,11 @@ endif
 # netCDF-Fortran build.  IS_NF_CONFIG=0 indicates that we found nf-config.
 IS_NF_CONFIG         :=$(shell test -f $(GC_F_BIN)/nf-config; echo $$?)
 
+# Define GC_BIN and GC_INCLUDE based on the home directory for netCDF-C (not
+# netCDF-Fortran).
+GC_BIN=${NETCDF_HOME}/bin
+GC_INCLUDE=${NETCDF_HOME}/include
+
 # Test for GEOS-Chem-Libraries or onboard netCDF libraries
 ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
 
@@ -516,7 +521,7 @@ ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
   # NetCDF link command: Add a workaround so that $GC_LIB will specify
   # the library path.  This should prevent any issues caused by building
   # the GEOS-Chem-Libraries in one location and moving them to another.
-  NC_LINK_CMD        := $(shell $(GC_BIN)/nf-config --flibs)
+  NC_LINK_CMD        := $(shell $(GC_F_BIN)/nf-config --flibs)
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
   NC_LINK_CMD        := $(filter -l%,$(NC_LINK_CMD))
   NC_LINK_CMD        :=-L$(GC_LIB) $(NC_LINK_CMD)
@@ -552,7 +557,7 @@ else
     NC_INC_CMD       := -I$(GC_INCLUDE)
 
     # NetCDF link command: 1 set of link commands
-    NC_LINK_CMD      := $(shell $(GC_BIN)/nc-config --flibs)
+    NC_LINK_CMD      := $(shell $(GC_BIN)/nc-config --libs)
 
   endif
 
@@ -635,7 +640,7 @@ ifeq ($(IS_DEFLATE),1)
   ifdef GC_F_INCLUDE
     GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
   else
-    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.h))
   endif
 
   # Look for the second word of the combined search results
