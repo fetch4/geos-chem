@@ -221,7 +221,9 @@ CONTAINS
 #ifdef MODEL_CLASSIC
     ! HEMCO Intermediate Grid specification
     USE HCO_State_GC_Mod,   ONLY : State_Grid_HCO
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     USE GC_Grid_Mod,        ONLY : Compute_Scaled_Grid
+#endif
     USE HCO_Utilities_GC_Mod, ONLY : Init_IMGrid
 #endif
 
@@ -293,6 +295,7 @@ CONTAINS
        id_POPG  = Ind_('POPG_PYR')
     ENDIF
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 #ifdef MODEL_CLASSIC
     ! Initialize the intermediate grid descriptor.
     ! To disable the HEMCO intermediate grid feature, simply set this DY, DX to
@@ -340,6 +343,7 @@ CONTAINS
       ! Intermediate grid is same as model grid. Maintain current implementation
       ! all computations about State_Grid_HCO can be skipped to save memory.
     ENDIF
+#endif
 #endif
 
     ! Create a splash page
