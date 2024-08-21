@@ -1,4 +1,4 @@
-#if defined( MODEL_CLASSIC )
+#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
