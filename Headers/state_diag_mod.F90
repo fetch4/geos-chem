@@ -1016,6 +1016,15 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: LossCH4inStrat(:,:,:)
      LOGICAL                     :: Archive_LossCH4inStrat
 
+     REAL(f4),           POINTER :: d13CH4(:,:,:)
+     LOGICAL                     :: Archive_d13CH4
+
+     REAL(f4),           POINTER :: dDCH4(:,:,:)
+     LOGICAL                     :: Archive_dDCH4
+
+     REAL(f4),           POINTER :: pMC(:,:,:)
+     LOGICAL                     :: Archive_pMC
+     
      ! %%%%% Tagged CO simulation %%%%%
      REAL(f4),           POINTER :: ProdCOfromCH4(:,:,:)
      LOGICAL                     :: Archive_ProdCOfromCH4
@@ -2595,6 +2604,15 @@ CONTAINS
     State_Diag%LossCH4inStrat                      => NULL()
     State_Diag%Archive_LossCH4inStrat              = .FALSE.
 
+    State_Diag%d13CH4                              => NULL()
+    State_Diag%Archive_d13CH4                      = .FALSE.
+
+    State_Diag%dDCH4                               => NULL()
+    State_Diag%Archive_dDCH4                       = .FALSE.
+
+    State_Diag%pMC                                 => NULL()
+    State_Diag%Archive_pMC                         = .FALSE.
+    
     !%%%%% Tagged CO simulation diagnostics %%%%%
 
     State_Diag%ProdCOfromCH4                          => NULL()
@@ -5894,7 +5912,8 @@ CONTAINS
     ! ALL FULL-CHEMISTRY SIMULATIONS
     ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_A_CARBON_SIM  .OR.  &
+                                     Input_Opt%ITS_A_MERCURY_SIM ) THEN 
 
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
@@ -10866,6 +10885,73 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! d13 of CH4
+       !--------------------------------------------------------------------
+       diagID  = 'd13CH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%d13CH4,                              &
+            archiveData    = State_Diag%Archive_d13CH4,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! dD of CH4
+       !--------------------------------------------------------------------
+       diagID  = 'dDCH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%dDCH4,                               &
+            archiveData    = State_Diag%Archive_dDCH4,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Percent Modern carbon
+       !--------------------------------------------------------------------
+       diagID  = 'pMC'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%pMC,                                 &
+            archiveData    = State_Diag%Archive_pMC,                         &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -10877,7 +10963,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 3
+       DO N = 1, 6
 
           SELECT CASE( N )
              CASE( 1  )
@@ -10886,7 +10972,13 @@ CONTAINS
                 diagID = 'LossCH4byOHinTrop'
              CASE( 3  )
                 diagID = 'LossCH4inStrat'
-          END SELECT
+             CASE( 4  )
+                diagID = 'd13CH4'
+             CASE( 5  )
+                diagID = 'dDCH4'
+             CASE( 6  )
+                diagID = 'pMC'
+             END SELECT
 
           ! Exit if any of the above are in the diagnostic list
           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -13923,6 +14015,21 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'd13CH4',                                      &
+                   Ptr2Data = State_Diag%d13CH4,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'dDCH4',                                       &
+                   Ptr2Data = State_Diag%dDCH4,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'pMC',                                         &
+                   Ptr2Data = State_Diag%pMC,                                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    
     CALL Finalize( diagId   = 'ProdCOfromCH4',                               &
                    Ptr2Data = State_Diag%ProdCOfromCH4,                      &
                    RC       = RC                                            )
@@ -16390,6 +16497,21 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'D13CH4' ) THEN
+       IF ( isDesc    ) Desc  = 'delta C-13 of methane'
+       IF ( isUnits   ) Units = 'permil'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DDCH4' ) THEN
+       IF ( isDesc    ) Desc  = 'delta deuterium of methane'
+       IF ( isUnits   ) Units = 'permil'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PMC' ) THEN
+       IF ( isDesc    ) Desc  = 'Percent Modern Carbon'
+       IF ( isUnits   ) Units = '%'
+       IF ( isRank    ) Rank  =  3
+       
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMCH4' ) THEN
        IF ( isDesc    ) Desc  = 'Production of CO by CH4'
        IF ( isRank    ) Rank  =  3

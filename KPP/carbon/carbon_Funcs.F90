@@ -38,10 +38,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_ConvertKgToMolecCm3(                                &
-             I,         J,          L,          id_CH4,     id_CO2,          &
-             id_CO,     xnumol_CH4, xnumol_CO,  xnumol_CO2, State_Chm,       &
-             State_Met                                                      )
+  SUBROUTINE carbon_ConvertKgToMolecCm3(                                                    &
+             I,         J,          L,          id_CH4,     id_CO2, id_CO,                  &
+             id_C12_CH4, id_C13_CH4, id_C14_CH4, id_C1H4, id_CH3D,                          &
+             xnumol_CH4, xnumol_CO,  xnumol_CO2,                                            & 
+             xnumol_C12_CH4, xnumol_C13_CH4, xnumol_C14_CH4, xnumol_C1H4, xnumol_CH3D,      &
+             State_Chm,       State_Met                                                      )
 !
 ! !USES:
 !
@@ -55,9 +57,21 @@ CONTAINS
     INTEGER,        INTENT(IN) :: id_CH4      ! Species index for CH4
     INTEGER,        INTENT(IN) :: id_CO       ! Species index for CO
     INTEGER,        INTENT(IN) :: id_CO2      ! Species index for CO2
+    INTEGER,        INTENT(IN) :: id_C12_CH4  
+    INTEGER,        INTENT(IN) :: id_C13_CH4  
+    INTEGER,        INTENT(IN) :: id_C14_CH4  
+    INTEGER,        INTENT(IN) :: id_C1H4  
+    INTEGER,        INTENT(IN) :: id_CH3D
+												
     REAL(fp),       INTENT(IN) :: xnumol_CH4  ! kg CH4 / molec CH4
     REAL(fp),       INTENT(IN) :: xnumol_CO   ! kg CO  / molec CO
     REAL(fp),       INTENT(IN) :: xnumol_CO2  ! kg CO2 / molec CO2
+    REAL(fp),       INTENT(IN) :: xnumol_C12_CH4  
+    REAL(fp),       INTENT(IN) :: xnumol_C13_CH4  
+    REAL(fp),       INTENT(IN) :: xnumol_C14_CH4  
+    REAL(fp),       INTENT(IN) :: xnumol_C1H4  
+    REAL(fp),       INTENT(IN) :: xnumol_CH3D
+				
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meterorology State object
 !EOP
@@ -96,15 +110,36 @@ CONTAINS
        C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
     ENDIF
 
+    IF ( id_C12_CH4 > 0 ) THEN
+       C(ind_C12_CH4) = Spc(id_C12_CH4)%Conc(I,J,L) * xnumol_C12_CH4 / airvol_cm3
+    ENDIF
+
+    IF ( id_C13_CH4 > 0 ) THEN
+       C(ind_C13_CH4) = Spc(id_C13_CH4)%Conc(I,J,L) * xnumol_C13_CH4 / airvol_cm3
+    ENDIF
+
+    IF ( id_C14_CH4 > 0 ) THEN
+       C(ind_C14_CH4) = Spc(id_C14_CH4)%Conc(I,J,L) * xnumol_C14_CH4 / airvol_cm3
+    ENDIF
+
+    IF ( id_C1H4 > 0 ) THEN
+       C(ind_C1H4) = Spc(id_C1H4)%Conc(I,J,L) * xnumol_C1H4 / airvol_cm3
+    ENDIF
+
+    IF ( id_CH3D > 0 ) THEN
+       C(ind_CH3D) = Spc(id_CH3D)%Conc(I,J,L) * xnumol_CH3D / airvol_cm3
+    ENDIF
+
     ! Initialize placeholder species to 1 molec/cm3
     C(ind_DummyCH4)   = 1.0_dp
     C(ind_DummyNMVOC) = 1.0_dp
 
     ! Initialize fixed species to 1 molec/cm3
     ! These will later be set to values read via HEMCO
-    C(ind_FixedCl) = 1.0_dp
-    C(ind_FixedOH) = 1.0_dp
-
+    C(ind_FixedCl)  = 1.0_dp
+    C(ind_FixedOH)  = 1.0_dp
+    C(ind_FixedO1D) = 1.0_dp
+				
     ! Free pointer
     Spc => NULL()
 
@@ -123,13 +158,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_ComputeRateConstants(                               &
+  SUBROUTINE carbon_ComputeRateConstants(                                    &
              I,             J,                 L,                            &
-             ConcClMnd,     ConcOHMnd,         LCH4_by_OH,                   &
+             ConcClMnd,     ConcOHMnd,         ConcO1Dmnd,                   &
              LCO_in_Strat,  OHdiurnalFac,      PCO_fr_CH4_use,               &
              PCO_fr_CH4,    PCO_fr_NMVOC_use,  PCO_fr_NMVOC,                 &
-             PCO_in_Strat,  dtChem,            State_Chm,                    &
-             State_Met                                                      )
+             PCO_in_Strat,  soil_uptake,       dtChem,                       &
+             State_Chm,     State_Met                                         )
 !
 ! !USES:
 !
@@ -142,7 +177,7 @@ CONTAINS
     INTEGER,        INTENT(IN) :: I, J, L
     REAL(fp),       INTENT(IN) :: ConcClMnd       ! Cl conc [molec/cm3]
     REAL(fp),       INTENT(IN) :: ConcOHmnd       ! OH conc [molec/cm3]
-    REAL(fp),       INTENT(IN) :: LCH4_by_OH      ! L(CH4) by OH [1/s]
+    REAL(fp),       INTENT(IN) :: ConcO1Dmnd      ! O1D conc [molec/cm3]
     REAL(fp),       INTENT(IN) :: LCO_in_Strat    ! Strat L(CO) [molec/cm3/s]
     REAL(fp),       INTENT(IN) :: OHdiurnalFac    ! OH diurnal scale factor [1]
     LOGICAL,        INTENT(IN) :: PCO_fr_CH4_use  ! Use P(CO) fr CH4? [T/F]
@@ -150,6 +185,7 @@ CONTAINS
     LOGICAL,        INTENT(IN) :: PCO_fr_NMVOC_use! Use P(CO) from NMVOC [T/F]
     REAL(fp),       INTENT(IN) :: PCO_fr_NMVOC    ! P(CO) fr NMVOC [molec/cm3/s]
     REAL(fp),       INTENT(IN) :: PCO_in_Strat    ! Strat P(CO) [molec/cm3/s]
+    REAL(fp),       INTENT(IN) :: soil_uptake     ! [1/s]
     REAL(fp),       INTENT(IN) :: dtChem          ! Chemistry timestep [s]
     TYPE(ChmState), INTENT(IN) :: State_Chm       ! Chemistry State object
     TYPE(MetState), INTENT(IN) :: State_Met       ! Meteorology State object
@@ -169,7 +205,22 @@ CONTAINS
     ! Initialize
     k_Strat = 0.0_dp
     k_Trop  = 0.0_dp
-    trop    = 0.0_dp
+    k_Soil  = 0.0_dp
+				trop    = 0.0_dp
+
+    ! OH and Cl concentrations [molec/cm3]
+    C(ind_FixedOH)  = ConcOHmnd * OHdiurnalFac
+    C(ind_FixedCl)  = ConcClMnd
+    C(ind_FixedO1D) = ConcO1DMnd
+
+    IF ( L .eq. 1 ) THEN
+       k_Soil(1) = soil_uptake ! CH4
+       k_Soil(2) = soil_uptake ! 12CH4
+       k_Soil(3) = soil_uptake / 1.018_fp ! 13CH4
+       k_Soil(4) = soil_uptake / 1.036_fp ! 14CH4
+       k_Soil(5) = soil_uptake ! C1H4
+       k_Soil(6) = soil_uptake / 1.083_fp ! CH3D
+    ENDIF
 
     IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
@@ -191,6 +242,7 @@ CONTAINS
        ! OH and Cl concentrations [molec/cm3]
        C(ind_FixedOH) = ConcOHmnd * OHdiurnalFac
        C(ind_FixedCl) = ConcClMnd
+       C(ind_FixedO1D) = ConcO1DMnd
 
        ! CH4 + offline OH reaction rate [1/s]
        ! This is a pseudo-2nd order rate appropriate for CH4 + OH
@@ -262,9 +314,12 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE carbon_ConvertMolecCm3ToKg(                                     &
-             I,         J,          L,          id_CH4,                      &
-             id_CO,     id_CO2,     xnumol_CH4, xnumol_CO2,                  &
-             xnumol_CO,  State_Chm, State_Met                               )
+             I,         J,          L,          id_CH4,     id_CO2, id_CO,                  &
+			          id_C12_CH4, id_C13_CH4, id_C14_CH4, id_C1H4, id_CH3D,                          &
+			          xnumol_CH4, xnumol_CO,  xnumol_CO2,                                            & 
+			          xnumol_C12_CH4, xnumol_C13_CH4, xnumol_C14_CH4, xnumol_C1H4, xnumol_CH3D,      &
+			          State_Chm,       State_Met                                                      )
+
 !
 ! !USES:
 !
@@ -278,9 +333,21 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: id_CH4       ! Species index for CH4
     INTEGER,        INTENT(IN)    :: id_CO        ! Species index for CO
     INTEGER,        INTENT(IN)    :: id_CO2       ! Species index for CO2
-    REAL(fp),       INTENT(IN)    :: xnumol_CH4   ! kg CH4 / molec CH4
-    REAL(fp),       INTENT(IN)    :: xnumol_CO    ! kg CO  / molec CO
-    REAL(fp),       INTENT(IN)    :: xnumol_CO2   ! kg CO2 / molec CO2
+    INTEGER,        INTENT(IN)    :: id_C12_CH4  
+    INTEGER,        INTENT(IN)    :: id_C13_CH4  
+    INTEGER,        INTENT(IN)    :: id_C14_CH4  
+    INTEGER,        INTENT(IN)    :: id_C1H4  
+    INTEGER,        INTENT(IN)    :: id_CH3D
+												
+    REAL(fp),       INTENT(IN)    :: xnumol_CH4  ! kg CH4 / molec CH4
+    REAL(fp),       INTENT(IN)    :: xnumol_CO   ! kg CO  / molec CO
+    REAL(fp),       INTENT(IN)    :: xnumol_CO2  ! kg CO2 / molec CO2
+    REAL(fp),       INTENT(IN)    :: xnumol_C12_CH4  
+    REAL(fp),       INTENT(IN)    :: xnumol_C13_CH4  
+    REAL(fp),       INTENT(IN)    :: xnumol_C14_CH4  
+    REAL(fp),       INTENT(IN)    :: xnumol_C1H4  
+    REAL(fp),       INTENT(IN)    :: xnumol_CH3D
+				
     TYPE(MetState), INTENT(IN)    :: State_Met    ! Meterorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -299,7 +366,7 @@ CONTAINS
     TYPE(SpcConc), POINTER :: Spc(:)
 
     !========================================================================
-    ! carbon__ConvertMolecCm3ToKg begins here!
+    ! carbon_ConvertMolecCm3ToKg begins here!
     !========================================================================
 
     ! Point to species array
@@ -320,6 +387,26 @@ CONTAINS
 
     IF ( id_CO2 > 0 ) THEN
        Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
+    ENDIF
+
+    IF ( id_C12_CH4 > 0 ) THEN
+       Spc(id_C12_CH4)%Conc(I,J,L) = C(ind_C12_CH4) * airvol_cm3 / xnumol_C12_CH4
+    ENDIF
+
+    IF ( id_C13_CH4 > 0 ) THEN
+       Spc(id_C13_CH4)%Conc(I,J,L) = C(ind_C13_CH4) * airvol_cm3 / xnumol_C13_CH4
+    ENDIF
+
+    IF ( id_C14_CH4 > 0 ) THEN
+       Spc(id_C14_CH4)%Conc(I,J,L) = C(ind_C14_CH4) * airvol_cm3 / xnumol_C14_CH4
+    ENDIF
+
+    IF ( id_C1H4 > 0 ) THEN
+       Spc(id_C1H4)%Conc(I,J,L) = C(ind_C1H4) * airvol_cm3 / xnumol_C1H4
+    ENDIF
+
+    IF ( id_CH3D > 0 ) THEN
+       Spc(id_CH3D)%Conc(I,J,L) = C(ind_CH3D) * airvol_cm3 / xnumol_CH3D
     ENDIF
 
     ! Free pointer

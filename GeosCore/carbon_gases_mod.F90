@@ -48,7 +48,13 @@ MODULE Carbon_Gases_Mod
   INTEGER               :: id_CH4,     id_CH4_adv, id_CO,      id_CO_adv
   INTEGER               :: id_CO2,     id_CO2_adv, id_OCS,     id_OCS_adv
   INTEGER               :: id_OH
+  INTEGER               :: id_C12_CH4, id_C13_CH4, id_C14_CH4
+		INTEGER               :: id_C1H4,    id_CH3D
+  REAL(fp)              :: mw_C12_CH4, mw_C13_CH4, mw_C14_CH4
+		REAL(fp)              :: mw_C1H4,    mw_CH3D
   REAL(fp)              :: xnumol_CH4, xnumol_CO,  xnumol_CO2, xnumol_OH
+  REAL(fp)              :: xnumol_C12_CH4, xnumol_C13_CH4, xnumol_C14_CH4 
+  REAL(fp)              :: xnumol_C1H4, xnumol_CH3D   
 
   ! Arrays
   REAL(fp), ALLOCATABLE :: sumOfCosSza(:,:)
@@ -59,6 +65,19 @@ MODULE Carbon_Gases_Mod
   REAL(fp), PARAMETER   :: CM2perM2    = 1.0e+4_fp
   REAL(fp), PARAMETER   :: CM3perM3    = 1.0e+6_fp
   REAL(fp), PARAMETER   :: toMolecCm3  = ( AVO / AIRMW ) * 1.0e-3_fp
+
+  ! 13C reference standard for Pee-Dee Belemnite [atom atom-1] [Craig, 1957]
+  REAL(fp), PARAMETER   :: Rs_13C_VPDB = 0.01123720e0_fp
+
+  ! D reference standard for Vienna Mean Standard Ocean Water [atom atom-1]
+  REAL(fp), PARAMETER   :: Rs_D_VSMOW  = 1.5576e-4_fp
+
+  ! Radioactive decay constant for 14C [s-1] = (8267 a)^-1
+  REAL(fp), PARAMETER   :: lambda_14C  = 3.833082e-12_fp
+
+  ! Absolute international standard activity defined for 1950 AD
+  ! in 0.95 NBS oxalic acid [Bq/kgC] [Stuiver, 1980]
+  REAL(fp), PARAMETER   :: A_abs       = 226_fp
 
 CONTAINS
 !EOC
@@ -251,11 +270,14 @@ CONTAINS
 ! !USES:
 !
     USE carbon_Funcs
-    USE gckpp_Global
-    USE gckpp_Integrator,     ONLY : Integrate
-    USE gckpp_Parameters
-    USE gckpp_Precision
-    USE gckpp_Rates,          ONLY : Update_Rconst
+    USE gckpp_Precision				
+    USE GcKpp_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
+    USE GcKpp_Parameters
+    USE GcKpp_Integrator,     ONLY : Integrate
+    USE GcKpp_Function
+    USE GcKpp_Model
+    USE Gckpp_Global
+    USE GcKpp_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE ErrCode_Mod
     USE HCO_State_Mod,        ONLY : Hco_GetHcoId
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_HcoStateOK
@@ -266,7 +288,7 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
-    USE Time_Mod,             ONLY : Get_Ts_Chem
+    USE Time_Mod,             ONLY : Get_Ts_Chem, GET_YEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -315,12 +337,15 @@ CONTAINS
     ! Scalars
     LOGICAL                :: failed
     INTEGER                :: HcoID,    I
-    INTEGER                :: J,        L
+    INTEGER                :: J,        L,         S
     INTEGER                :: NA,       N
     INTEGER                :: IERR
     REAL(fp)               :: dtChem,   facDiurnal
     REAL(fp)               :: tsPerDay
 
+				REAL(fp)               :: atomsD, atomsH, d13, dD, Rs, yr
+    REAL(fp)               :: D, D14C, pMC, A_S, A_SN, A_abs_c
+				
     ! Strings
     CHARACTER(LEN=255)     :: errMsg
     CHARACTER(LEN=255)     :: thisLoc
@@ -333,17 +358,20 @@ CONTAINS
     INTEGER                :: ISTATUS(20)
     REAL(dp)               :: RCNTRL(20)
     REAL(dp)               :: RSTATE(20)
+    REAL(dp)               :: Vloc(NVAR)
+    REAL(dp)               :: Aout(NREACT)
     REAL(fp)               :: OHdiurnalFac(State_Grid%NX, State_Grid%NY)
 
     ! Arrays for data read in via HEMCO
     REAL(fp) :: Global_OH(   State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: Global_Cl(   State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: LCH4_by_OH(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: Global_O1D(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: LCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: PCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: PCO_fr_CH4  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: PCO_fr_NMVOC(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-
+    REAL(fp) :: Soil_Uptake( State_Grid%NX, State_Grid%NY               )
+				
     !========================================================================
     ! Chem_Carbon_Gases begins here!
     !========================================================================
@@ -399,6 +427,17 @@ CONTAINS
        State_Diag%ProdCOfromNMVOC = 0.0_f4
     ENDIF
 
+    IF ( State_Diag%Archive_d13CH4 ) THEN
+       State_Diag%d13CH4 = 0.0_f4
+    ENDIF
+				
+				IF ( State_Diag%Archive_pMC ) THEN
+  					State_Diag%pMC = 0.0_f4
+				ENDIF
+
+    IF ( State_Diag%Archive_dDCH4 ) THEN
+       State_Diag%dDCH4 = 0.0_f4
+    ENDIF
 
     !========================================================================
     ! Read chemical inputs (oxidant fields, concentrations) via HEMCO
@@ -407,14 +446,16 @@ CONTAINS
          Input_Opt    = Input_Opt,                                           &
          State_Grid   = State_Grid,                                          &
          State_Met    = State_Met,                                           &
+									State_Chm    = State_Chm,                                           &
          Global_OH    = Global_OH,                                           &
+         Global_O1D   = Global_O1D,                                          &
          Global_Cl    = Global_Cl,                                           &
-         LCH4_by_OH   = LCH4_by_OH,                                          &
          LCO_in_Strat = LCO_in_Strat,                                        &
          PCO_in_Strat = PCO_in_Strat,                                        &
          PCO_fr_CH4   = PCO_fr_CH4,                                          &
          PCO_fr_NMVOC = PCO_fr_NMVOC,                                        &
-         RC           = RC                                                  )
+         Soil_Uptake  = Soil_Uptake,                                         &
+									RC           = RC                                                  )
 
     !========================================================================
     ! Compute OH diurnal cycle scaling factor
@@ -467,10 +508,14 @@ CONTAINS
     ! Set a flag to denote if the chemistry failed
     failed     = .FALSE.
 
+    ! Zero diagnostic archival arrays to make sure that we don't have any
+    ! leftover values from the last timestep near the top of the chemgrid
+    IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+
     ! Loop over grid boxes
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N                                               )&
+    !$OMP PRIVATE( I, J, L, N, Vloc, Aout, d13, dD, atomsD, atomsH, Rs      )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -502,9 +547,19 @@ CONTAINS
             id_CH4     = id_CH4,                                             &
             id_CO      = id_CO,                                              &
             id_CO2     = id_CO2,                                             &
+            id_C12_CH4 = id_C12_CH4,                                         &
+            id_C13_CH4 = id_C13_CH4,                                         &
+            id_C14_CH4 = id_C14_CH4,                                         &												
+            id_C1H4    = id_C1H4,                                            &
+            id_CH3D    = id_CH3D,                                            &
             xnumol_CH4 = xnumol_CH4,                                         &
             xnumol_CO  = xnumol_CO,                                          &
             xnumol_CO2 = xnumol_CO2,                                         &
+            xnumol_C12_CH4 = xnumol_C12_CH4,                                 &
+            xnumol_C13_CH4 = xnumol_C13_CH4,                                 &
+            xnumol_C14_CH4 = xnumol_C14_CH4,                                 &												
+            xnumol_C1H4    = xnumol_C1H4,                                    &
+            xnumol_CH3D    = xnumol_CH3D,                                    &
             State_Met  = State_Met,                                          &
             State_Chm  = State_Chm                                          )
 
@@ -520,7 +575,7 @@ CONTAINS
             dtChem           = dtChem,                                       &
             ConcClMnd        = Global_Cl(I,J,L),                             &
             ConcOHmnd        = Global_OH(I,J,L),                             &
-            LCH4_by_OH       = LCH4_by_OH(I,J,L),                            &
+            ConcO1Dmnd       = Global_O1D(I,J,L),                            &
             LCO_in_Strat     = LCO_in_Strat(I,J,L),                          &
             OHdiurnalFac     = OHdiurnalFac(I,J),                            &
             PCO_in_Strat     = PCO_in_Strat(I,J,L),                          &
@@ -528,11 +583,39 @@ CONTAINS
             PCO_fr_CH4       = PCO_fr_CH4(I,J,L),                            &
             PCO_fr_NMVOC_use = Input_Opt%LPCO_NMVOC,                         &
             PCO_fr_NMVOC     = PCO_fr_NMVOC(I,J,L),                          &
+            soil_uptake      = Soil_Uptake(I,J),                             &				
             State_Met        = State_Met,                                    &
             State_Chm        = State_Chm                                    )
 
        ! Update the array of rate constants for the KPP solver
        CALL Update_RCONST()
+
+       !---------------------------------------------------------------------
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Archive KPP equation rates (Aout).  For GEOS-Chem in GEOS, also
+       ! archive the time derivative of variable species (Vdot).
+       !
+       ! NOTE: Replace VAR with C(1:NVAR) and FIX with C(NVAR+1:NSPEC),
+       ! because VAR and FIX are now local to the integrator
+       !  -- Bob Yantosca (03 May 2022)
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_RxnRate ) THEN
+
+          ! Get the reaction rates as Aout
+          CALL Fun ( V       = C(1:NVAR),                                    &
+                     F       = C(NVAR+1:NSPEC),                              &
+                     RCT     = RCONST,                                       &
+                     Vdot    = Vloc,                                         &
+                     Aout    = Aout                                         )
+
+          ! Only save requested equation rates
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+
+       ENDIF
 
        !=====================================================================
        ! Call the KPP integrator
@@ -599,12 +682,22 @@ CONTAINS
             I            = I,                                                &
             J            = J,                                                &
             L            = L,                                                &
-            id_CH4       = id_CH4,                                           &
-            id_CO        = id_CO,                                            &
-            id_CO2       = id_CO2,                                           &
-            xnumol_CO    = xnumol_CO,                                        &
-            xnumol_CH4   = xnumol_CH4,                                       &
-            xnumol_CO2   = xnumol_CO2,                                       &
+            id_CH4     = id_CH4,                                             &
+            id_CO      = id_CO,                                              &
+            id_CO2     = id_CO2,                                             &
+            id_C12_CH4 = id_C12_CH4,                                         &
+            id_C13_CH4 = id_C13_CH4,                                         &
+            id_C14_CH4 = id_C14_CH4,                                         &			
+            id_C1H4    = id_C1H4,                                            &
+            id_CH3D    = id_CH3D,                                            &
+            xnumol_CH4 = xnumol_CH4,                                         &
+            xnumol_CO  = xnumol_CO,                                          &
+            xnumol_CO2 = xnumol_CO2,                                         &
+            xnumol_C12_CH4 = xnumol_C12_CH4,                                 &
+            xnumol_C13_CH4 = xnumol_C13_CH4,                                 &
+            xnumol_C14_CH4 = xnumol_C14_CH4,                                 &
+            xnumol_C1H4    = xnumol_C1H4,                                    &
+            xnumol_CH3D    = xnumol_CH3D,                                    &
             State_Chm    = State_Chm,                                        &
             State_Met    = State_Met                                        )
 
@@ -649,6 +742,97 @@ CONTAINS
        RETURN
     ENDIF
 
+								
+    !#################################################################
+    !# Isotopologue Diagnostics
+    !#################################################################
+								
+    ! Loop over grid boxes
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( L, J, I, d13, dD, Rs, A_S, A_SN, A_abs_c, pMC, D14C      )&
+    !$OMP PRIVATE( atomsH, atomsD                                           )&
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )				
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Units: [permil] d13 of CH4
+       IF ( State_Diag%Archive_d13CH4 .and. id_C13_CH4 > 0 .and. id_C12_CH4 > 0 ) THEN
+
+          ! Calculate molecular ratio of 13C to 12C
+          Rs = ( Spc(id_C13_CH4)%Conc( I, J, L ) * MW_C12_CH4 ) / &
+               ( Spc(id_C12_CH4)%Conc( I, J, L ) * MW_C13_CH4 )
+
+          ! Compare to Pee-Dee Belemnite Standard (per mil)
+          d13 = ( ( Rs / Rs_13C_VPDB ) - 1e0_fp ) * 1000e0_fp
+
+          State_Diag%d13CH4(I,J,L) = d13
+
+       ENDIF
+
+       ! Units: [permil] dD of CH4
+       IF ( State_Diag%Archive_dDCH4 .and. id_C1H4 > 0 .and. id_CH3D > 0 ) THEN
+
+          ! Calculate atomic ratio of D to H
+          atomsD =     Spc(id_CH3D)%Conc( I, J, L ) / MW_CH3D
+          atomsH = 3 * Spc(id_CH3D)%Conc( I, J, L ) / MW_CH3D + 4 * Spc(id_C1H4)%Conc( I, J, L ) / MW_C1H4
+          Rs = atomsD / atomsH
+
+          ! Compare to Vienna Standard Mean Ocean Water (per mil)
+          dD = ( ( Rs / Rs_D_VSMOW ) - 1e0_fp ) * 1000e0_fp
+
+          State_Diag%dDCH4(I,J,L) = dD
+
+       ENDIF
+
+       IF ( State_Diag%Archive_pMC .and. id_C14_CH4 > 0 .and. id_C13_CH4 > 0 .and. id_C12_CH4 > 0 ) THEN
+
+          ! Determine 14C activity in grid box [kg 14CH4] => [Bq]
+          A_S = ( Spc(id_C14_CH4)%Conc( I, J, L ) / ( mw_C14_CH4 * 1e-3_fp ) ) * &
+               AVO * lambda_14C
+
+          ! Normalize to -25‰ (preindustrial d13) to account for
+          ! atmospheric chemistry between 1950 standard and present-day
+          Rs = ( Spc(id_C13_CH4)%Conc( I, J, L ) * mw_C12_CH4 ) / &
+               ( Spc(id_C12_CH4)%Conc( I, J, L ) * mw_C13_CH4 )
+          d13 = ( ( Rs / Rs_13C_VPDB ) - 1e0_fp ) * 1000e0_fp
+          A_SN = A_S * ( 0.975_fp / ( 1_fp+(d13/1e3_fp) ) )**2_fp
+
+          ! Calculate age-corrected absolute activity [Bq]
+          A_abs_c = A_abs * Spc(id_CH4)%Conc( I, J, L ) * &
+               exp( ( 1950.0_fp - yr ) / 8267.0_fp )
+
+          ! Calculate ∆14C (w/ age correction)
+          D14C = ( A_SN / A_abs_c ) - 1_fp
+
+          ! Calculate percent modern carbon (w/ age correction)
+          pMC  = ( A_SN / A_abs_c ) * 100_fp
+
+          ! Determine atomic ratio ( 14C / ( 13C + 12C ) )
+          A_S =                   ( Spc(id_C14_CH4)%Conc(I,J,L) / mw_C14_CH4 ) / &
+               ( ( Spc(id_C12_CH4)%Conc(I,J,L) / mw_C12_CH4 ) + ( Spc(id_C13_CH4)%Conc(I,J,L) / mw_C13_CH4 ) )
+
+          ! Correct for radioactive decay relative to standard year
+          A_S = A_S * exp( lambda_14C * 3600d0 * 24d0 * 365.25 * ( GET_YEAR() - 1950 ) )
+
+          ! Correct for other biogeochemical processes
+          A_S = A_S * ( 0.975d0 / ( 1d0 + ( d13/1d3 ) ) )**2d0
+
+          ! Relate to standard; convert to percent
+          pMC = A_S * (1d0/1.1694d-12) * 100d0
+
+          ! Archive
+          State_Diag%pMC(I,J,L) = pMC
+
+       ENDIF
+    
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+				
     ! Free pointers for safety's sake
     Spc => NULL()
 
@@ -668,9 +852,9 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ReadChemInputFields( Input_Opt,    State_Grid,   State_Met,     &
-                                  Global_OH,    Global_Cl,    LCH4_by_OH,    &
-                                  LCO_in_Strat, PCO_in_Strat, PCO_fr_CH4,    &
-                                  PCO_fr_NMVOC, RC                          )
+                                  State_Chm,    Global_OH,    Global_O1D,    &
+																																		Global_Cl,    LCO_in_Strat, PCO_in_Strat,  &
+																																		PCO_fr_CH4,   PCO_fr_NMVOC, Soil_Uptake,  RC  )
 !
 ! !USES:
 !
@@ -679,12 +863,14 @@ CONTAINS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
+    USE State_Chm_Mod,        ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)  :: Input_Opt        ! Input Options object
     TYPE(GrdState), INTENT(IN)  :: State_Grid       ! Grid State object
     TYPE(MetState), INTENT(IN)  :: State_Met        ! Meteorology State object
+    TYPE(ChmState), INTENT(IN)  :: State_Chm        ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -692,14 +878,14 @@ CONTAINS
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Grid%NZ)  ! OH conc
+    REAL(fp),       INTENT(OUT) :: Global_O1D(                               &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Grid%NZ)  ! O(1D) conc
     REAL(fp),       INTENT(OUT) :: Global_Cl(                                &
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Grid%NZ)  ! Cl conc
-    REAL(fp),       INTENT(OUT) :: LCH4_by_OH(                               &
-                                    State_Grid%NX,                           &
-                                    State_Grid%NY,                           &
-                                    State_Grid%NZ)  ! L(CH4) by OH
     REAL(fp),       INTENT(OUT) :: LCO_in_Strat(                             &
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
@@ -716,6 +902,9 @@ CONTAINS
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Grid%NZ)  ! P(CO) from NMVOC
+    REAL(fp),       INTENT(OUT) :: Soil_Uptake(                              &
+                                    State_Grid%NX,                           &
+                                    State_Grid%NY)  ! Soil Uptake Rate [s-1]
     INTEGER,        INTENT(OUT) :: RC               ! Success/failure
 !
 !EOP
@@ -726,7 +915,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: found
-
+    INTEGER            :: I, J
+				
     ! Strings
     CHARACTER(LEN=63)  :: dgnName
     CHARACTER(LEN=255) :: thisLoc
@@ -744,13 +934,24 @@ CONTAINS
     thisLoc = &
      ' -> at ReadInputChemFields (in module GeosCore/carbon_gases_mod.F90)'
 
+	    !------------------------------------------------------------------------
+	    ! OH concentration: [molec/cm3]
+	    !------------------------------------------------------------------------
+	    DgnName = 'GLOBAL_OH'
+	    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,                     &
+	                         Global_OH, RC,         found=found                 )
+	    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+	       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+	       CALL GC_Error( errMsg, RC, thisLoc )
+	       RETURN
+	    ENDIF
+					
     !------------------------------------------------------------------------
-    ! Loss frequencies of CH4
-    ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
+    ! O(1D) concentration: [molec/cm3]
     !------------------------------------------------------------------------
-    DgnName = 'CH4_LOSS'
-    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                    &
-                         LCH4_by_OH, RC,         found=found                )
+    DgnName = 'GLOBAL_O1D'
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,                     &
+                         Global_O1D, RC,        found=found                 )
     IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
        errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -758,9 +959,7 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Cl concentration:
-    ! Input via HEMCO ("SpeciesConc" collection) as [mol/mol dry]
-    ! Convert to [molec/cm3] below
+    ! Cl concentration: [molec/cm3]
     !------------------------------------------------------------------------
     DgnName = 'GLOBAL_Cl'
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,                     &
@@ -771,94 +970,81 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Convert orignal units [mol/mol dry air] to [molec/cm3]
-    Global_Cl = ( Global_Cl * State_Met%AirDen ) * toMolecCm3
-
-    !------------------------------------------------------------------------
-    ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
-    !------------------------------------------------------------------------
-    IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
-
-       ! NOTE: Container name is GLOBAL_OH for both data sets!
-       DgnName = 'GLOBAL_OH'
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,               &
-                            Global_OH, RC,         found=found           )
-       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! If we are using OH from recent a 10-year benchmark ("SpeciesConc")
-    ! then convert OH [mol/mol dry air] to [molec/cm3].
-    IF ( useGlobOHbmk10yr ) THEN
-       Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
-    ENDIF
-
-    ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
-    ! methane simulations) then convert OH from [kg/m3] to [molec/cm3].
-    IF ( useGlobOHv5 ) THEN
-       Global_OH = Global_OH * xnumol_OH / CM3perM3
-    ENDIF
-
     !------------------------------------------------------------------------
     ! P(CO) from GMI:
     ! Input via HEMCO ("GMI_PROD_CO" field) as [v/v/s]
     ! Units will be converted in carbon_ComputeRateConstants
     !------------------------------------------------------------------------
-    DgnName = 'GMI_PROD_CO'
-    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
-                         PCO_in_Strat, RC,         found=found              )
-    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-       errMsg = 'Cannot get pointer to ' // TRIM( DgnName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+!    DgnName = 'GMI_PROD_CO'
+!    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
+!                         PCO_in_Strat, RC,         found=found              )
+!    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+!       errMsg = 'Cannot get pointer to ' // TRIM( DgnName )
+!       CALL GC_Error( errMsg, RC, thisLoc )
+!       RETURN
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! L(CO) from GMI
+!    ! Input via HEMCO ("GMI_LOSS_CO" field) as [1/s]
+!    !------------------------------------------------------------------------
+!    DgnName = 'GMI_LOSS_CO'
+!    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
+!                         LCO_in_Strat, RC,         found=found              )
+!    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+!       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+!       CALL GC_Error( errMsg, RC, thisLoc )
+!       RETURN
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! P(CO) from CH4
+!    ! Input via HEMCO ("ProdCOfromCH4 field") as [molec/cm3/s]
+!    !------------------------------------------------------------------------
+!    IF ( Input_Opt%LPCO_CH4 ) THEN
+!       DgnName = 'PCO_CH4'
+!       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                  &
+!                            PCO_fr_CH4, RC,         found=found              )
+!       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+!          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+!          CALL GC_Error( errMsg, RC, thisLoc )
+!          RETURN
+!       ENDIF
+!    ENDIF
+!
+!    !------------------------------------------------------------------------
+!    ! P(CO) from NMVOC
+!    ! Input via HEMCO ("ProdCOfromNMVOC" field) as [molec/cm3/s]
+!    !------------------------------------------------------------------------
+!    IF ( Input_Opt%LPCO_NMVOC ) THEN
+!       DgnName = 'PCO_NMVOC'
+!       CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,               &
+!                            PCO_fr_NMVOC, RC,         found=found           )
+!       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+!          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+!          CALL GC_Error( errMsg, RC, thisLoc )
+!          RETURN
+!       ENDIF
+!    ENDIF
 
     !------------------------------------------------------------------------
-    ! L(CO) from GMI
-    ! Input via HEMCO ("GMI_LOSS_CO" field) as [1/s]
+    ! Soil Uptake
     !------------------------------------------------------------------------
-    DgnName = 'GMI_LOSS_CO'
-    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
-                         LCO_in_Strat, RC,         found=found              )
+    DgnName = 'CH4_SOILABSORB'
+    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,               &
+                         SOIL_UPTAKE, RC,         found=found           )
     IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
        errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-
-    !------------------------------------------------------------------------
-    ! P(CO) from CH4
-    ! Input via HEMCO ("ProdCOfromCH4 field") as [molec/cm3/s]
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%LPCO_CH4 ) THEN
-       DgnName = 'PCO_CH4'
-       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                  &
-                            PCO_fr_CH4, RC,         found=found              )
-       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! P(CO) from NMVOC
-    ! Input via HEMCO ("ProdCOfromNMVOC" field) as [molec/cm3/s]
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%LPCO_NMVOC ) THEN
-       DgnName = 'PCO_NMVOC'
-       CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,               &
-                            PCO_fr_NMVOC, RC,         found=found           )
-       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-          errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
+				! Convert from kg m-2 s-1 to s-1
+    DO J = 1, State_Grid%NY
+	   DO I = 1, State_Grid%NX
+				    Soil_Uptake(I,J) = Soil_Uptake(I,J) * State_Grid%Area_M2(I,J) / State_Chm%Species(id_CH4)%Conc(I,J,1)	
+				ENDDO
+				ENDDO
+				
   END SUBROUTINE ReadChemInputFields
 !EOC
 !------------------------------------------------------------------------------
@@ -922,6 +1108,12 @@ CONTAINS
     xnumol_CO  = 1.0_fp
     xnumol_CO2 = 1.0_fp
     xnumol_OH  = 1.0_fp
+				xnumol_C12_CH4 = 1.0_fp
+				xnumol_C13_CH4 = 1.0_fp
+				xnumol_C14_CH4 = 1.0_fp
+				xnumol_C1H4    = 1.0_fp
+				xnumol_CH3D    = 1.0_fp
+				
     errMsg     = ''
     thisLoc    = &
      ' -> at Init_Carbon_Gases (in module GeosCore/carbon_gases_mod.F90)'
@@ -940,6 +1132,18 @@ CONTAINS
     id_OCS        = Ind_( 'OCS'        )
     id_OCS_adv    = Ind_( 'OCS',   'A' )
     id_OH         = Ind_( 'FixedOH'    )
+
+    id_C12_CH4    = Ind_( 'C12_CH4'    )
+    id_C13_CH4    = Ind_( 'C13_CH4'    )
+    id_C14_CH4    = Ind_( 'C14_CH4'    )
+    id_C1H4       = Ind_( 'C1H4'       )
+    id_CH3D       = Ind_( 'CH3D'       )
+
+    if ( id_C12_CH4 > 0 ) mw_C12_CH4    = State_Chm%SpcData(id_C12_CH4)%Info%Mw_g
+    if ( id_C13_CH4 > 0 ) mw_C13_CH4    = State_Chm%SpcData(id_C13_CH4)%Info%Mw_g
+    if ( id_C14_CH4 > 0 ) mw_C14_CH4    = State_Chm%SpcData(id_C14_CH4)%Info%Mw_g
+    if ( id_C1H4    > 0 ) mw_C1H4       = State_Chm%SpcData(id_C1H4   )%Info%Mw_g
+    if ( id_CH3D    > 0 ) mw_CH3D       = State_Chm%SpcData(id_CH3D   )%Info%Mw_g
 
     !========================================================================
     ! Save physical parameters from the species_database.yml file into KPP
@@ -960,6 +1164,11 @@ CONTAINS
           IF ( N == id_CO  ) xnumol_CO  = AVO / ( MW(KppId) * 1.0e-3_fp )
           IF ( N == id_CO2 ) xnumol_CO2 = AVO / ( MW(KppId) * 1.0e-3_fp )
           IF ( N == id_OH  ) xnumol_OH  = AVO / ( MW(KppId) * 1.0e-3_fp )
+          IF ( N == id_C12_CH4 ) xnumol_C12_CH4 = AVO / ( MW(KppId) * 1.0e-3_fp )
+          IF ( N == id_C13_CH4 ) xnumol_C13_CH4 = AVO / ( MW(KppId) * 1.0e-3_fp )
+          IF ( N == id_C14_CH4 ) xnumol_C14_CH4 = AVO / ( MW(KppId) * 1.0e-3_fp )
+          IF ( N == id_C1H4    ) xnumol_C1H4    = AVO / ( MW(KppId) * 1.0e-3_fp )
+          IF ( N == id_CH3D    ) xnumol_CH3D    = AVO / ( MW(KppId) * 1.0e-3_fp )
        ENDIF
     ENDDO
 
@@ -1272,18 +1481,6 @@ CONTAINS
     ! Set a global variable to determine which OH to use
     useGlobOHbmk10yr = isOHon
     useGlobOHv5      = isOHv5on
-
-    IF ( Input_Opt%amIRoot ) THEN
-       IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
-          IF ( useGlobOHbmk10yr ) WRITE( 6, 100 ) 'GLOBAL_OH_GC14'
-          IF ( useGlobOHv5      ) WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
- 100      FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
-       ELSE
-          WRITE( 6, 110 )
- 110      FORMAT( 'Carbon_Gases: Global OH is set to zero!' )
-       ENDIF
-
-    ENDIF
 
   END SUBROUTINE InquireGlobalOHversion
 !EOC

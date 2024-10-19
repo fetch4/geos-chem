@@ -227,3 +227,7 @@
   ! Are we in the tropopshere (1=yes, 0=no)
   REAL(dp) :: TROP
   !$OMP THREADPRIVATE( TROP )
+
+  ! Array for trop CH4/CO/CO2 rates [1/s]
+  REAL(dp) :: K_SOIL(6)
+  !$OMP THREADPRIVATE( K_SOIL )

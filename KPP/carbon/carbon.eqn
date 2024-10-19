@@ -20,6 +20,11 @@ v14.1.0 (release TBD)
 
 #DEFVAR
 CH4         = IGNORE;  { Active methane species                   }
+C12_CH4     = IGNORE;  { Active C12-methane species               }
+C13_CH4     = IGNORE;  { Active C13-methane species               }
+C14_CH4     = IGNORE;  { Active C14-methane species               }
+C1H4        = IGNORE;  { Active H1-methane species                }
+CH3D        = IGNORE;  { Active H2-methane species                }
 CO          = IGNORE;  { Active carbon monoxide species           }
 CO2         = IGNORE;  { Active carbon dioxide species            }
 COfromCH4   = IGNORE;  { Tracks P(CO)  from CH4   for diagnostics }
@@ -29,24 +34,50 @@ Dummy       = IGNORE;  { Dummy placeholder product                }
 
 #DEFFIX
 FixedOH     = IGNORE;  { Externally-supplied OH concentration     }
+FixedO1D    = IGNORE;  { Externally-supplied O1D concentration    }
 FixedCl     = IGNORE;  { Externally-supplied Cl concentration     }
 DummyCH4    = IGNORE;  { Dummy placeholder for CH4   reactant     }
 DummyNMVOC  = IGNORE;  { Dummy placeholder for NMVOC reactant     }
 
 #EQUATIONS
+CH4 + FixedOH  = CO    + COfromCH4  : 2.45d-12*EXP(-1775.0d0/TEMP);
+CH4 + FixedO1D = Dummy              : 1.75d-10;
+CH4 + FixedCl  = Dummy              : 9.60d-12*EXP(-1360.0d0/TEMP);
+CH4            = Dummy              : k_soil(1);
 //
-// Reactions extracted from ch4_co_co2_mod.F
-// Based on Bukosa et al. (2021) with additions for OCS
+C12_CH4 + FixedOH  = Dummy          : 2.45d-12*EXP(-1775.0d0/TEMP);
+C12_CH4 + FixedO1D = Dummy          : 1.75d-10;
+C12_CH4 + FixedCl  = Dummy          : 9.60d-12*EXP(-1360.0d0/TEMP);
+C12_CH4            = Dummy          : k_soil(2);
 //
-// %%%%%%%%%%%%%%%%%%%%%%%%
-// %%%%%  TROP CHEM   %%%%%
-// %%%%%%%%%%%%%%%%%%%%%%%%
+// KIE from Whitehill  2017 10.1016/j.gca.2016.09.012
+C13_CH4 + FixedOH  = Dummy          : 2.45d-12*EXP(-1775.0d0/TEMP)/1.0061d0;
+// KIE from Saueressig 2001 10.1029/2000JD000120
+C13_CH4 + FixedO1D = Dummy          : 1.75d-10/1.013d0;
+// KIE from Tyler      2000 10.1029/1999GL011168
+C13_CH4 + FixedCl  = Dummy          : 9.60d-12*EXP(-1360.0d0/TEMP)/1.0621d0;
+C13_CH4            = Dummy          : k_soil(3);
 //
-// Rate k_Trop(1) [1/s] is set to HEMCO-supplied P(CO) from CH4
-CH4 + FixedOH = CO    + COfromCH4   : k_Trop(1);
+// KIE from Whitehill  2017 10.1016/j.gca.2016.09.012
+C14_CH4 + FixedOH  = Dummy          : 2.45d-12*EXP(-1775.0d0/TEMP)/1.0078d0;
+// KIE from Saueressig 2001 10.1029/2000JD000120
+C14_CH4 + FixedO1D = Dummy          : 1.75d-10/1.026d0;
+// KIE from Tyler      2000 10.1029/1999GL011168
+C14_CH4 + FixedCl  = Dummy          : 9.60d-12*EXP(-1360.0d0/TEMP)/1.136d0;
+C14_CH4            = Dummy          : k_soil(4);
 //
-// Rate [1/s] is from Kirschke et al, 2013 (Nature Geosci.)
-CH4 + FixedCl = Dummy               : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+C1H4 + FixedOH  = Dummy             : 2.45d-12*EXP(-1775.0d0/TEMP);
+C1H4 + FixedO1D = Dummy             : 1.75d-10;
+C1H4 + FixedCl  = Dummy             : 9.60d-12*EXP(-1360.0d0/TEMP);
+C1H4            = Dummy             : k_soil(5);
+//
+// KIE from JPL
+CH3D + FixedOH  = Dummy             : 3.50d-12*EXP(-1950.0d0/TEMP);
+// KIE from Saueressig 2001 10.1029/2000JD000120
+CH3D + FixedO1D = Dummy             : 1.75d-10/1.06d0;
+// KIE from Saueressig 1996 10.1029/96GL03292
+CH3D + FixedCl  = Dummy             : 9.60d-12*EXP(-1360.0d0/TEMP)/(1.278d0*EXP(51.31d0/TEMP)) ;
+CH3D            = Dummy             : k_soil(6);
 //
 // Rate k_trop(2) [1/s] is the output of rate law function GC_OHCO
 CO  + FixedOH = CO2   + CO2fromOH   : k_Trop(2);
@@ -56,13 +87,6 @@ CO  + FixedOH = CO2   + CO2fromOH   : k_Trop(2);
 // to k_Trop(3) [molec/cm3/s] * dt [s], where dt is the chemistry
 // timestep.  k_Trop(3) contains externally-supplied P(CO) from NMVOC.
 DummyNMVOC    = CO    + COfromNMVOC : k_Trop(3);
-//
-// %%%%%%%%%%%%%%%%%%%%%%%%
-// %%%%%  STRAT CHEM  %%%%%
-// %%%%%%%%%%%%%%%%%%%%%%%%
-//
-// Rate k_Strat(1) [1/s] is set to HEMCO-supplied loss of CH4 by OH
-CH4           = Dummy               : k_Strat(1);
 //
 // DummyCH4 is a placeholder species set to 1 molec/cm3.
 // This is a KPP "trick" in order to set the final CO concentration
