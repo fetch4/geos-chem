@@ -64,7 +64,7 @@ MODULE HCO_Interface_GC_Mod
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
   PRIVATE :: Get_Met_Fields
 #endif
 !
@@ -97,7 +97,7 @@ MODULE HCO_Interface_GC_Mod
   ! Internal met fields (will be used by some extensions)
   INTEGER,  TARGET    :: HCO_PBL_MAX                      ! level
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
 
   !------------------------------------------------
   ! %%% Internal HEMCO intermediate resolution %%%
@@ -221,9 +221,7 @@ CONTAINS
 #ifdef MODEL_CLASSIC
     ! HEMCO Intermediate Grid specification
     USE HCO_State_GC_Mod,   ONLY : State_Grid_HCO
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     USE GC_Grid_Mod,        ONLY : Compute_Scaled_Grid
-#endif
     USE HCO_Utilities_GC_Mod, ONLY : Init_IMGrid
 #endif
 
@@ -295,7 +293,6 @@ CONTAINS
        id_POPG  = Ind_('POPG_PYR')
     ENDIF
 
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 #ifdef MODEL_CLASSIC
     ! Initialize the intermediate grid descriptor.
     ! To disable the HEMCO intermediate grid feature, simply set this DY, DX to
@@ -343,7 +340,6 @@ CONTAINS
       ! Intermediate grid is same as model grid. Maintain current implementation
       ! all computations about State_Grid_HCO can be skipped to save memory.
     ENDIF
-#endif
 #endif
 
     ! Create a splash page
@@ -818,7 +814,7 @@ CONTAINS
     USE HCO_Driver_Mod,  ONLY : HCO_Run
     USE HCOX_Driver_Mod, ONLY : HCOX_Run
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ! HEMCO utility routines for GEOS-Chem
     USE HCO_Utilities_GC_Mod, ONLY : Get_GC_Restart
     USE HCO_Utilities_GC_Mod, ONLY : Get_Boundary_Conditions
@@ -1010,7 +1006,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     !=======================================================================
     ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
@@ -1281,7 +1277,7 @@ CONTAINS
     ! Deallocate module variables
     !-----------------------------------------------------------------------
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( ASSOCIATED( REGR_3DI ) ) THEN
        DEALLOCATE( REGR_3DI  )
        CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCOI_GC_Final:REGR_3DI', 2, RC )
@@ -1492,7 +1488,7 @@ CONTAINS
     IMh    = IM
     JMh    = JM
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( Input_Opt%LIMGRID ) THEN
       IMh  = State_Grid_HCO%NX
       JMh  = State_Grid_HCO%NY
@@ -1877,7 +1873,7 @@ CONTAINS
 
 #if defined( MODEL_WRF )
     ! For WRF-GC, the FIRST call needs to be domain-ID specific.
-    FIRST = FIRST_PERID(State_Grid%ID)
+    FIRST = FIRST_PERID( State_Grid%CPU_Subdomain_ID )
 #endif
 
     !-----------------------------------------------------------------------
@@ -1885,12 +1881,12 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! SZAFACT
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
                        HMRC,     FIRST,            State_Met%SZAFACT )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
                        HMRC,     FIRST,            H_SZAFACT )
@@ -1906,12 +1902,12 @@ CONTAINS
     ENDIF
 
     ! JNO2
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
                        HMRC,     FIRST,         State_Chm%JNO2 )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
                        HMRC,     FIRST,         H_JNO2 )
@@ -1927,12 +1923,12 @@ CONTAINS
     ENDIF
 
     ! JOH
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
                        HMRC,     FIRST,        State_Chm%JOH )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
                        HMRC,     FIRST,        H_JOH )
@@ -1954,12 +1950,12 @@ CONTAINS
     ! PSC2_WET
     ! Computed in calc_met_mod
     IF ( ExtState%PSC2_WET%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
                          HMRC,     FIRST,             State_Met%PSC2_WET )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
                          HMRC,     FIRST,             H_PSC2_WET )
@@ -1978,12 +1974,12 @@ CONTAINS
     ! FRCLND
     ! Computed in olson_landmap_mod
     IF ( ExtState%FRCLND%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
                          HMRC,     FIRST,           State_Met%FRCLND )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
                          HMRC,     FIRST,           H_FRCLND )
@@ -2002,12 +1998,12 @@ CONTAINS
     ! LAI
     ! Calculated in modis_lai_mod from XLAI_NATIVE
     IF ( ExtState%LAI%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
                          HMRC,     FIRST,        State_Met%MODISLAI )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
                          HMRC,     FIRST,        H_MODISLAI )
@@ -2026,13 +2022,13 @@ CONTAINS
     ! CNV_FRC Convective fractions
     ! Apparently this is not used anywhere right now? maybe it is a GCHP thing
     IF ( ExtState%CNV_FRC%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
                          HMRC,     FIRST,             State_Met%CNV_FRC,  &
                          NotFillOk=.TRUE. )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
                          HMRC,     FIRST,             H_CNV_FRC,  &
@@ -2051,12 +2047,12 @@ CONTAINS
 
     ! Tropopause level
     IF ( ExtState%TropLev%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
                          HMRC,     FIRST,            State_Met%TropLev )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
                          HMRC,     FIRST,            H_TropLev )
@@ -2078,12 +2074,12 @@ CONTAINS
 
     ! TK
     IF ( ExtState%TK%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
                          HMRC,     FIRST,       State_Met%T )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
                          HMRC,     FIRST,       H_T )
@@ -2101,12 +2097,12 @@ CONTAINS
 
     ! Air mass [kg/grid box]
     IF ( ExtState%AIR%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
                          HMRC,     FIRST,        State_Met%AD )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
                          HMRC,     FIRST,        H_AD )
@@ -2124,12 +2120,12 @@ CONTAINS
 
     ! AIRVOL_FOR_EMIS
     IF ( ExtState%AIRVOL%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
                          HMRC,     FIRST,           State_Met%AIRVOL )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
                          HMRC,     FIRST,           H_AIRVOL )
@@ -2147,12 +2143,12 @@ CONTAINS
 
     ! Dry air density [kg/m3]
     IF ( ExtState%AIRDEN%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
                          HMRC,     FIRST,           State_Met%AIRDEN )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
                          HMRC,     FIRST,           H_AIRDEN )
@@ -2170,12 +2166,12 @@ CONTAINS
 
     ! Frac of PBL
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
                          HMRC,     FIRST,                State_Met%F_OF_PBL )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
                          HMRC,     FIRST,                H_F_OF_PBL )
@@ -2205,7 +2201,7 @@ CONTAINS
     ! (hplin, 6/2/20)
 
     ! U10M
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2222,7 +2218,7 @@ CONTAINS
     ENDIF
 
     ! V10M
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2240,7 +2236,7 @@ CONTAINS
     ENDIF
 
     ! ALBD
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBEDO', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2257,7 +2253,7 @@ CONTAINS
     ENDIF
 
     ! T2M
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2274,7 +2270,7 @@ CONTAINS
     ENDIF
 
     ! TSKIN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TS', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2291,7 +2287,7 @@ CONTAINS
     ENDIF
 
     ! GWETROOT
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2308,7 +2304,7 @@ CONTAINS
     ENDIF
 
     ! GWETTOP
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2325,7 +2321,7 @@ CONTAINS
     ENDIF
 
     ! USTAR
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2342,7 +2338,7 @@ CONTAINS
     ENDIF
 
     ! Z0
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0M', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2359,7 +2355,7 @@ CONTAINS
     ENDIF
 
     ! PARDR
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2376,7 +2372,7 @@ CONTAINS
     ENDIF
 
     ! PARDF
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2393,7 +2389,7 @@ CONTAINS
     ENDIF
 
     ! RADSWG
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'SWGDN', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2410,7 +2406,7 @@ CONTAINS
     ENDIF
 
     ! CLDFRC
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDTOT', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2428,7 +2424,7 @@ CONTAINS
 
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOMAS', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2445,7 +2441,7 @@ CONTAINS
     ENDIF
 
     ! SNOWDP [m]
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2462,7 +2458,7 @@ CONTAINS
     ENDIF
 
     ! FRLAND
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2479,7 +2475,7 @@ CONTAINS
     ENDIF
 
     ! FROCEAN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2497,7 +2493,7 @@ CONTAINS
 
 ! start blowing snow
     ! FRSEAICE (for blowing snow, huang & jaegle 04/12/20)
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2513,7 +2509,7 @@ CONTAINS
     ENDIF
 
     ! QV2M (for blowing snow, huang & jaegle 04/12/20)
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2530,7 +2526,7 @@ CONTAINS
 ! end blowing snow
 
     ! FRLAKE
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE', &
                      HMRC,     FIRST=FIRST )
 #else
@@ -2547,12 +2543,12 @@ CONTAINS
     ENDIF
 
     ! FRLANDIC
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC', &
                      HMRC,     FIRST=FIRST )
 #else
     CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%FRLANDIC )
+                     HMRC,     FIRST,             State_Met%FRLANDICE )
 #endif
 
     ! Trap potential errors
@@ -2568,7 +2564,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! CNV_MFC
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CMFMC', &
                      HMRC,      FIRST,            OnLevEdge=.TRUE. )
 #else
@@ -2599,7 +2595,7 @@ CONTAINS
 
     IF ( id_O3 > 0 ) THEN
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_O3)%Conc
@@ -2607,7 +2603,7 @@ CONTAINS
                          HMRC,     FIRST,       Trgt3D )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
                          HMRC,     FIRST,       H_SpcO3 )
@@ -2625,7 +2621,7 @@ CONTAINS
 
     IF ( id_NO2 > 0 ) THEN
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_NO2)%Conc
@@ -2633,7 +2629,7 @@ CONTAINS
                          HMRC,     FIRST,        Trgt3D )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
                          HMRC,     FIRST,        H_SpcNO2 )
@@ -2651,7 +2647,7 @@ CONTAINS
 
     IF ( id_NO > 0 ) THEN
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_NO)%Conc
@@ -2659,7 +2655,7 @@ CONTAINS
                          HMRC,     FIRST,       Trgt3D )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
                          HMRC,     FIRST,       H_SpcNO )
@@ -2677,7 +2673,7 @@ CONTAINS
 
     IF ( id_HNO3 > 0 ) THEN
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_HNO3)%Conc
@@ -2685,7 +2681,7 @@ CONTAINS
                          HMRC,     FIRST,         Trgt3D )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
                          HMRC,     FIRST,         H_SpcHNO3 )
@@ -2703,7 +2699,7 @@ CONTAINS
 
     IF ( id_POPG > 0 ) THEN
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_POPG)%Conc
@@ -2711,7 +2707,7 @@ CONTAINS
                          HMRC,     FIRST,         Trgt3D )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
                          HMRC,     FIRST,         H_SpcPOPG )
@@ -2733,12 +2729,12 @@ CONTAINS
 
     ! DRY_TOTN
     IF ( ExtState%DRY_TOTN%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
                          HMRC,     FIRST,             State_Chm%DryDepNitrogen )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
                          HMRC,     FIRST,             H_DRY_TOTN )
@@ -2756,12 +2752,12 @@ CONTAINS
 
     ! WET_TOTN
     IF ( ExtState%WET_TOTN%DoUse ) THEN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
                          HMRC,     FIRST,             State_Chm%WetDepNitrogen )
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
       ELSE
         CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
                          HMRC,     FIRST,             H_WET_TOTN )
@@ -2815,7 +2811,7 @@ CONTAINS
     ! Not first call any more
     FIRST  = .FALSE.
 #if defined( MODEL_WRF )
-    FIRST_PERID(State_Grid%ID) = .FALSE.
+    FIRST_PERID( State_Grid%CPU_Subdomain_ID ) = .FALSE.
 #endif
     Trgt3D => NULL()
 
@@ -2853,7 +2849,7 @@ CONTAINS
 #ifdef ESMF_
     USE HCOI_ESMF_MOD,        ONLY : HCO_SetExtState_ESMF
 #endif
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     USE HCO_State_GC_Mod,     ONLY : State_Grid_HCO    ! HEMCO intermediate grid
     USE HCO_Utilities_GC_Mod, ONLY : Regrid_MDL2HCO
 #endif
@@ -2969,7 +2965,7 @@ CONTAINS
     ENDDO
 !$OMP END PARALLEL DO
 
-#if defined ( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined ( MODEL_CLASSIC )
     IF ( Input_Opt%LIMGRID ) THEN
     !=======================================================================
     ! GEOS-Chem Classic HEMCO "Intermediate" Grid: Regrid appropriate met fields
@@ -3256,7 +3252,7 @@ CONTAINS
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
     USE Input_Opt_Mod,    ONLY : OptInput
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     USE HCO_State_GC_Mod, ONLY : State_Grid_HCO    ! HEMCO intermediate grid
     USE HCO_Utilities_GC_Mod, ONLY : Regrid_MDL2HCO
 #endif
@@ -3317,7 +3313,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Allocate all arrays.
     !-----------------------------------------------------------------------
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
@@ -3338,7 +3334,7 @@ CONTAINS
       ALLOCATE( PBLM( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:GridEdge_Set:PBLM', 0, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ELSE
       ! If intermediate grid, allocate and manually regrid meteorological fields.
       ALLOCATE( PEDGE( State_Grid_HCO%NX, State_Grid_HCO%NY, State_Grid_HCO%NZ+1 ), STAT=RC )
@@ -3414,7 +3410,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set PBL heights
     !-----------------------------------------------------------------------
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
 !$OMP PARALLEL DO                                                 &
@@ -3426,7 +3422,7 @@ CONTAINS
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ELSE
       ! Intermediate grid
       ! PBLM
@@ -3468,7 +3464,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       ! Free pointers
@@ -3478,7 +3474,7 @@ CONTAINS
       PSFC     => NULL()
       PEDGE    => NULL()
       PBLM     => NULL()
-#if defined( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined( MODEL_CLASSIC )
     ELSE
       ! Deallocate arrays
       IF ( ASSOCIATED( ZSFC ) ) THEN
@@ -3613,7 +3609,6 @@ CONTAINS
          Input_Opt%ITS_A_CH4_SIM                                        .or. &
          Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
          Input_Opt%ITS_A_POPS_SIM                                       .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM                                     .or. &
          Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
          Input_Opt%ITS_A_TRACER_SIM                                     .or. &
@@ -4272,7 +4267,7 @@ CONTAINS
 
   END FUNCTION Get_SzaFact
 !EOC
-#if defined ( MODEL_CLASSIC ) && !defined( MODEL_GISS )
+#if defined ( MODEL_CLASSIC )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4486,6 +4481,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -4529,7 +4525,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S,       origUnit
+    INTEGER                 :: S,       previous_units
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4584,20 +4580,33 @@ CONTAINS
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -4820,8 +4829,8 @@ CONTAINS
              ! included emission from these surfaces and most field studies
              ! suggest Hg(0) emissions exceed deposition during sunlit hours.
              fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J) + &
-                                 State_Met%FRSNO(I,J)   + &
-                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
+                                 State_Met%FRSNOW(I,J)   + &
+                                 State_Met%FRLANDICE(I,J), 1e+0_fp)
              zeroHg0Dep   = ( fracNoHg0Dep > 0e+0_fp )
 
              IF ( zeroHg0Dep ) THEN
@@ -4978,20 +4987,6 @@ CONTAINS
           ! NOTE: we don't need to multiply by the ratio of TS_CONV /
           ! TS_CHEM, as the updating frequency for HISTORY is determined
           ! by the "frequency" setting in the "HISTORY.rc"input file.
-          ! The old bpch diagnostics archived the drydep due to chemistry
-          ! every chemistry timestep = 2X the dynamic timestep.  So in
-          ! order to avoid double-counting the drydep flux from mixing,
-          ! you had to multiply by TS_CONV / TS_CHEM.
-          !
-          ! ALSO NOTE: When comparing History output to bpch output,
-          ! you must use an updating frequency equal to the dynamic
-          ! timestep so that the drydep fluxes due to mixing will
-          ! be equivalent w/ the bpch output.  It is also recommended to
-          ! turn off chemistry so as to be able to compare the drydep
-          ! fluxes due to mixing in bpch vs. History as an "apples-to-
-          ! apples" comparison.
-          !
-          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
           IF ( State_Diag%Archive_DryDepMix   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
@@ -5031,12 +5026,20 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors
@@ -5044,6 +5047,11 @@ CONTAINS
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     ! Cleanup
