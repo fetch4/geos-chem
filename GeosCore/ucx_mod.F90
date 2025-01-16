@@ -3942,6 +3942,10 @@ CONTAINS
     ! from 2x25 onto any other grid. This won't work for the 2D
     ! boundary conditions, but those have been checked in the logical
     ! check above (USE2DDATA).
+    IF ( TRIM(State_Grid%GridRes) == '' ) THEN
+       ! FIXME: Grid resolution is unset!
+       ! State_Grid%GridRes = '4.0x5.0'
+    END IF
     IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
        GRIDSPEC = 'Grid4x5/InitCFC_'
     ELSE
