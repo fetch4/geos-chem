@@ -480,6 +480,7 @@ CONTAINS
        RETURN
     ENDIF
 
+#if !defined( MODEL_GISS )
     !=======================================================================
     ! Initialize the hybrid pressure module.  Define Ap and Bp.
     !=======================================================================
@@ -489,6 +490,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
     !=======================================================================
     ! Call setup routines for drydep
