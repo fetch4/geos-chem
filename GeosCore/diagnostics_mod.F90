@@ -1425,9 +1425,12 @@ CONTAINS
             Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
           id_OH  = Ind_('OH')
           IF ( id_OH < 0 ) THEN
-             errMsg = 'OH is not a defined species in this simulation!!!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
+             id_OH = Ind_('FixedOH')
+             IF ( id_OH < 0 ) THEN
+                errMsg = 'OH is not a defined species in this simulation!!!'
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
           ENDIF
        ENDIF
        first= .FALSE.
@@ -1516,6 +1519,13 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
           State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Tropopause level [unitless]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTropLev ) THEN
+          State_Diag%SatDiagnTropLev(I,:) = State_Met%TropLev(I,:) * good
        ENDIF
 
        !---------------------------------------------------------------------

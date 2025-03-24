@@ -486,6 +486,11 @@ else
 
  fi
 
+# Turn off MEGAN for the aerosol-only simulation
+if [[ "x${sim_name}" == "xaerosol"  ]]; then
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
+fi
+
 #-----------------------------------------------------------------
 # Ask user to select horizontal resolution
 #-----------------------------------------------------------------
@@ -499,6 +504,9 @@ if [[ "x${met}" == "xModelE2.1" || "x${met}" == "xModelE2.2" ]]; then
 elif [[ ${met} = "geosit" ]]; then
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
+    if [[ "${sim_name}" = "TransportTracers" ]]; then
+	printf "  3. 0.5  x 0.625\n"
+    fi
 else
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
@@ -538,7 +546,7 @@ while [ "${valid_res}" -eq 0 ]; do
     fi
 done
 
-if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
+if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" = "025x03125" ]]; then
     printf "${thinline}Choose horizontal grid domain:${thinline}"
     printf "  1. Global\n"
     printf "  2. Asia\n"
@@ -962,6 +970,7 @@ fi
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
@@ -974,6 +983,7 @@ if [[ ${met} = "ModelE2.1" ]]; then
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
@@ -1005,6 +1015,7 @@ else
 	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"

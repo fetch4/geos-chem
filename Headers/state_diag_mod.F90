@@ -945,6 +945,9 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: SatDiagnTROPP(:,:)
      LOGICAL                     :: Archive_SatDiagnTROPP
 
+     REAL(f8),           POINTER :: SatDiagnTropLev(:,:)
+     LOGICAL                     :: Archive_SatDiagnTropLev
+
      REAL(f8),           POINTER :: SatDiagnPBLHeight(:,:)
      LOGICAL                     :: Archive_SatDiagnPBLHeight
 
@@ -1457,7 +1460,7 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_CO2photrate
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
      !----------------------------------------------------------------------
      ! The following diagnostics are only used when
      ! GEOS-Chem is interfaced into WRF (as WRF-GC) or CESM
@@ -2409,6 +2412,9 @@ CONTAINS
     State_Diag%SatDiagnTROPP                       => NULL()
     State_Diag%Archive_SatDiagnTROPP               = .FALSE.
 
+    State_Diag%SatDiagnTropLev                     => NULL()
+    State_Diag%Archive_SatDiagnTropLev             = .FALSE.
+
     State_Diag%SatDiagnPBLHeight                   => NULL()
     State_Diag%Archive_SatDiagnPBLHeight           = .FALSE.
 
@@ -2836,7 +2842,7 @@ CONTAINS
     State_Diag%Archive_CO2photrate                 = .FALSE.
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     !=======================================================================
     ! These diagnostics are only activated when running GC
     ! either in NASA/GEOS, WRF, or CESM
@@ -4894,6 +4900,28 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite diagnostic: Tropopause level (TropLev)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnTropLev'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnTropLev,                        &
+         archiveData    = State_Diag%Archive_SatDiagnTropLev,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: PBL Height (m)
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnPBLHeight'
@@ -5190,6 +5218,12 @@ CONTAINS
          State_Diag%Archive_SatDiagnConc                                .or. &
          State_Diag%Archive_SatDiagnDryDep                              .or. &
          State_Diag%Archive_SatDiagnDryDepVel                           .or. &
+         State_Diag%Archive_SatDiagnPEdge                               .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnTropLev                             .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
@@ -7002,7 +7036,7 @@ CONTAINS
           RETURN
        ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
@@ -12999,6 +13033,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnTropLev',                           &
+                   Ptr2Data = State_Diag%SatDiagnTropLev,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnPBLHeight',                         &
                    Ptr2Data = State_Diag%SatDiagnPBLHeight,                &
                    RC       = RC                                            )
@@ -14373,7 +14412,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     !=======================================================================
     ! These fields are only used when GEOS-Chem
     ! is interfaced to NASA/GEOS, WRF (as WRF-GC), or CESM
@@ -15146,6 +15185,11 @@ CONTAINS
        IF ( isUnits   ) Units = 'hPa'
        IF ( isRank    ) Rank  = 2
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPLEV' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropopause level'
+       IF ( isUnits   ) Units = 'unitless'
+       IF ( isRank    ) Rank  = 2
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPBLHEIGHT' ) THEN
        IF ( isDesc    ) Desc  = 'PBL Height'
        IF ( isUnits   ) Units = 'm'
@@ -15415,7 +15459,7 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'
        IF ( isUnits   ) Units = '1'
@@ -17134,6 +17178,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE CharPak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -17168,11 +17213,11 @@ CONTAINS
     RC      = GC_SUCCESS
     bin     = -1
     errMsg  = ''
-    thisLoc = ' -> at Get_UVFlux_Index (in module Headers/state_diag_mod.F90)'
+    thisLoc = ' -> at Get_UVFlux_Bin (in module Headers/state_diag_mod.F90)'
 
     ! Get the index for the tagname
     DO N = 1, 18
-       IF ( TRIM( tagName ) == TRIM( UVFlux_Tag_Names(N) ) ) THEN
+       IF ( TRIM( tagName ) == To_UpperCase( TRIM( UVFlux_Tag_Names(N))) ) THEN
           bin = N
           EXIT
        ENDIF

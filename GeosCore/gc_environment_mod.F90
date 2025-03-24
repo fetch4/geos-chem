@@ -142,6 +142,13 @@ CONTAINS
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
 #ifdef FASTJX
+    ! Throw an error if FAST-JX is used for simulations other than Hg
+    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       ErrMsg = 'FAST-JX is only supported in the Hg simulation!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
@@ -347,7 +354,7 @@ CONTAINS
     ! Allocate State_Grid arrays
     CALL Allocate_State_Grid( Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Compute_Grid"!'
+       ErrMsg = 'Error encountered in "Allocate_State_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -473,6 +480,7 @@ CONTAINS
        RETURN
     ENDIF
 
+#if !defined( MODEL_GISS )
     !=======================================================================
     ! Initialize the hybrid pressure module.  Define Ap and Bp.
     !=======================================================================
@@ -482,6 +490,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
     !=======================================================================
     ! Call setup routines for drydep
