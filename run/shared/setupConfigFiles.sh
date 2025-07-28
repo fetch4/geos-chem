@@ -297,6 +297,30 @@ function set_common_settings() {
     fi
 
     #------------------------------------------------------------------------
+    # Methane and CO Isotopologues
+    #------------------------------------------------------------------------
+    if [[ "x${sim_extra_option}" == "xFETCH4" ]]; then
+
+        # Add isotopologues
+        prev_line='      - BZPAN'
+        new_line='\      - C12H3D\
+      - C12H4\
+      - C13H3D\
+      - C13H4\
+      - C14H4\
+      - C14O
+'
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
+
+	# Add SF6
+        prev_line='      - SALCCL'
+        new_line='\      - SF6
+'
+	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
+	
+    fi
+    
+    #------------------------------------------------------------------------
     # TOMAS settings
     #------------------------------------------------------------------------
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then

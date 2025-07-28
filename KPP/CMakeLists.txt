@@ -19,6 +19,13 @@ if("${MECH}" STREQUAL carbon)
 endif()
 
 #-----------------------------------------------------------------------------
+# Build the FETCH4 mechanism if configured with -DMECH=fetch4
+#-----------------------------------------------------------------------------
+if("${MECH}" STREQUAL fetch4)
+  add_subdirectory(fetch4)
+endif()
+
+#-----------------------------------------------------------------------------
 # Build the custom mechanism if configured with -DMECH=custom
 # Also build the KPP-Standalone if configured with -DKPPSA=y
 #-----------------------------------------------------------------------------

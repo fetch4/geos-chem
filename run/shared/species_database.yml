@@ -1124,6 +1124,52 @@ CH4_WTL:
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from wetland emissions
+C12H4_PROP: &C12H4properties
+  Formula: 12CH4
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 16.03130013
+C12H4:
+  << : *C12H4properties
+  Background_VV: 1.8e-6
+  FullName: Carbon-12 of Methane
+C12H3D_PROP: &C12H3Dproperties
+  Formula: 12CH3D
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 17.03757687
+C12H3D:
+  << : *C12H3Dproperties
+  Background_VV: 1.8e-6
+  FullName: Deuterated Carbon-12 of Methane
+C13H4_PROP: &C13H4properties
+  Formula: 13CH4
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 17.03465496
+C13H4:
+  << : *C13H4properties
+  Background_VV: 1.8e-6
+  FullName: Carbon-13 of Methane
+C13H3D_PROP: &C13H3Dproperties
+  Formula: 13CH3D
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 18.04093171
+C13H3D:
+  << : *C13H3Dproperties
+  Background_VV: 1.8e-6
+  FullName: Deuterated Carbon-13 of Methane
+C14H4_PROP: &C14H4properties
+  Formula: 14CH4
+  Is_Advected: true
+  Is_Gas: true
+  Is_Radionuclide: true
+  MW_g: 18.03500500
+C14H4:
+  << : *C14H4properties
+  Background_VV: 1.8e-20
+  FullName: Carbon-14 of Methane
 CHBr3:
   Formula: CHBr3
   FullName: Bromoform
@@ -1366,6 +1412,14 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
+C14O:
+  Formula: 14CO
+  Is_Advected: true
+  Is_Gas: true
+  Is_RadioNuclide: true
+  MW_g: 29.9981566086
+  FullName: Carbon-14 monoxide
+  Background_VV: 1.0e-20
 CSL:
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
@@ -3086,6 +3140,31 @@ LCOinStrat:
   FullName: Dummy species to track loss of CO in strat (carbon mechanism)
   Is_Gas: true
   MW_g: 1.0
+LCOH:
+  Background_VV: 1.0e-20
+  Is_Advected: false
+  Is_Gas: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+LCO1D:
+  Background_VV: 1.0e-20
+  Is_Advected: false
+  Is_Gas: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+LCCl:
+  Background_VV: 1.0e-20
+  Is_Advected: false
+  Is_Gas: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+LCSOIL:
+  Background_VV: 1.0e-20
+  Is_Advected: false
+  Is_Gas: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+LCDECAY:
+  Background_VV: 1.0e-20
+  Is_Advected: false
+  Is_Gas: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
 LIMAL:
   DD_F0: 1.0
   DD_Hstar: 1.0e+3

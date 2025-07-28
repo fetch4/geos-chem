@@ -220,7 +220,8 @@ PROGRAM GEOS_Chem
 #ifdef RRTMG
   LOGICAL, SAVE            :: FIRST_RT = .TRUE.
 #endif
-
+  LOGICAL                  :: is_FETCH4
+  
   !-----------------------------
   ! Derived type objects
   !-----------------------------
@@ -524,6 +525,9 @@ PROGRAM GEOS_Chem
      id_CH4   = Ind_('CH4',   'A')
      id_CLOCK = Ind_('CLOCK', 'A')
 
+     ! It is a FETCH4 simulation if isotopologues are present
+     is_FETCH4 = Ind_('C12H3D', 'A') .ne. 0
+     
      !-----------------------------------------------------------------------
      ! OBSPACK Diagnostics: Get information from the species
      ! database for all requested ObsPack output species
@@ -1356,7 +1360,8 @@ PROGRAM GEOS_Chem
        ! (currently done outside emissions)
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
             id_CH4 > 0                     .and.                             &
-            notDryRun                     ) THEN
+            notDryRun                      .and.                             &
+            .not. is_FETCH4 ) THEN
 
           IF ( VerboseAndRoot ) THEN
              CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
@@ -1372,6 +1377,7 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
        ENDIF
+       
 
        !---------------------------------------------------------------------
        ! Test for convection timestep

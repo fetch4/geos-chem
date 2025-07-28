@@ -165,6 +165,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  6. TOMAS\n"
     printf "  7. APM\n"
     printf "  8. RRTMG\n"
+    printf "  9. FETCH4\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
 	read -p "${USER_PROMPT}" sim_option
@@ -215,6 +216,8 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
+	elif [[ ${sim_option} = "9" ]]; then
+	    sim_extra_option="FETCH4"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
