@@ -1131,7 +1131,7 @@ C12H4_PROP: &C12H4properties
   MW_g: 16.03130013
 C12H4:
   << : *C12H4properties
-  Background_VV: 1.8e-6
+  Background_VV: 1.0e-20
   FullName: Carbon-12 of Methane
 C12H3D_PROP: &C12H3Dproperties
   Formula: 12CH3D
@@ -1140,7 +1140,7 @@ C12H3D_PROP: &C12H3Dproperties
   MW_g: 17.03757687
 C12H3D:
   << : *C12H3Dproperties
-  Background_VV: 1.8e-6
+  Background_VV: 1.0e-20
   FullName: Deuterated Carbon-12 of Methane
 C13H4_PROP: &C13H4properties
   Formula: 13CH4
@@ -1149,7 +1149,7 @@ C13H4_PROP: &C13H4properties
   MW_g: 17.03465496
 C13H4:
   << : *C13H4properties
-  Background_VV: 1.8e-6
+  Background_VV: 1.0e-20
   FullName: Carbon-13 of Methane
 C13H3D_PROP: &C13H3Dproperties
   Formula: 13CH3D
@@ -1158,7 +1158,7 @@ C13H3D_PROP: &C13H3Dproperties
   MW_g: 18.04093171
 C13H3D:
   << : *C13H3Dproperties
-  Background_VV: 1.8e-6
+  Background_VV: 1.0e-20
   FullName: Deuterated Carbon-13 of Methane
 C14H4_PROP: &C14H4properties
   Formula: 14CH4
@@ -1168,7 +1168,7 @@ C14H4_PROP: &C14H4properties
   MW_g: 18.03500500
 C14H4:
   << : *C14H4properties
-  Background_VV: 1.8e-20
+  Background_VV: 1.0e-20
   FullName: Carbon-14 of Methane
 CHBr3:
   Formula: CHBr3
