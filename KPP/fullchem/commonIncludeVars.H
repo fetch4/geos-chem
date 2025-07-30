@@ -234,16 +234,6 @@
   ! Variables specific to the isotopologue mechanism
   !==========================================================================
 
-  ! Oxidant concentrations
-  REAL(dp) :: xOH
-  !$OMP THREADPRIVATE( xOH  )
-									       
-  REAL(dp) :: xO1D
-  !$OMP THREADPRIVATE( xO1D )
-									       
-  REAL(dp) :: xCl
-  !$OMP THREADPRIVATE( xCl  )									       
-									       
   ! Soil loss rate
   REAL(dp) :: k_soil
   !$OMP THREADPRIVATE( k_soil )

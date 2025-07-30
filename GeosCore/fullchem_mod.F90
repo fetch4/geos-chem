@@ -1001,9 +1001,9 @@ CONTAINS
        ! Oxidants for isotopologues (so they aren't consumed multiple times)
        !=====================================================================
        IF ( is_FETCH4 ) THEN
-          xOH    = State_Chm%Species(id_OH)%Conc(I,J,L)
-          xO1D   = State_Chm%Species(id_O1D)%Conc(I,J,L)
-          xCl    = State_Chm%Species(id_Cl)%Conc(I,J,L)
+          !xOH    = State_Chm%Species(id_OH)%Conc(I,J,L)
+          !xO1D   = State_Chm%Species(id_O1D)%Conc(I,J,L)
+          !xCl    = State_Chm%Species(id_Cl)%Conc(I,J,L)
           k_soil = kSOIL(I,J,L)
        ENDIF
 
