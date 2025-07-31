@@ -255,7 +255,7 @@ CONTAINS
     errUnits  = ''
 
     ! Debugging print
-    IF ( Input_Opt%Verbose ) THEN
+    IF ( Input_Opt%Verbose .and. Input_Opt%amIroot ) THEN
        WRITE( 6, 100 ) TRIM( UNIT_STR( current_units ) ),                    &
                        TRIM( UNIT_STR( new_units     ) )
  100   FORMAT( '     ### Species Unit Conversion: ', a, ' -> ', a )

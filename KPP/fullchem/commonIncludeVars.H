@@ -227,3 +227,12 @@
   ! Are we in the tropopshere (1=yes, 0=no)
   REAL(dp) :: TROP
   !$OMP THREADPRIVATE( TROP )
+
+  !==========================================================================
+  ! Variables specific to the FETCH4 and methane isotopologue mechanism
+  !==========================================================================
+
+  ! Soil loss rate
+  REAL(dp) :: k_soil
+  !$OMP THREADPRIVATE( k_soil )
+

@@ -340,6 +340,21 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: SatDiagnOHreactivity(:,:,:)
      LOGICAL                     :: Archive_SatDiagnOHreactivity     
 
+     REAL(f4),           POINTER :: d13CCH4(:,:,:)
+     LOGICAL                     :: Archive_d13CCH4
+
+     REAL(f4),           POINTER :: d2HCH4(:,:,:)
+     LOGICAL                     :: Archive_d2HCH4
+
+     REAL(f4),           POINTER :: pMCCH4(:,:,:)
+     LOGICAL                     :: Archive_pMCCH4     
+
+     REAL(f4),           POINTER :: D14CH4(:,:,:)
+     LOGICAL                     :: Archive_D14CH4     
+     
+     REAL(f4),           POINTER :: ClconcAfterChem(:,:,:)
+     LOGICAL                     :: Archive_ClconcAfterChem
+     
      REAL(f4),           POINTER :: OHconcAfterChem(:,:,:)
      LOGICAL                     :: Archive_OHconcAfterChem
 
@@ -1800,6 +1815,21 @@ CONTAINS
     State_Diag%TCOD600                            => NULL()
     State_Diag%Archive_TCOD600                    = .FALSE.
 
+    State_Diag%d13CCH4                             => NULL()
+    State_Diag%Archive_d13CCH4                     = .FALSE.
+
+    State_Diag%d2HCH4                              => NULL()
+    State_Diag%Archive_d2HCH4                      = .FALSE.
+
+    State_Diag%pMCCH4                              => NULL()
+    State_Diag%Archive_pMCCH4                      = .FALSE.
+
+    State_Diag%D14CH4                              => NULL()
+    State_Diag%Archive_D14CH4                      = .FALSE.
+    
+    State_Diag%ClconcAfterChem                     => NULL()
+    State_Diag%Archive_ClconcAfterChem             = .FALSE.
+    
     State_Diag%OHconcAfterChem                     => NULL()
     State_Diag%Archive_OHconcAfterChem             = .FALSE.
 
@@ -7324,6 +7354,117 @@ CONTAINS
           RETURN
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! Cl concentration upon exiting the FlexChem solver (fullchem
+       ! simulations) or the CH4 specialty simulation chemistry routine
+       !--------------------------------------------------------------------
+       diagID  = 'ClconcAfterChem'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ClconcAfterChem,                     &
+            archiveData    = State_Diag%Archive_ClconcAfterChem,             &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Delta C-13 of methane
+       !--------------------------------------------------------------------
+       diagID  = 'd13CCH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%d13CCH4,                             &
+            archiveData    = State_Diag%Archive_d13CCH4,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Delta H-2 of methane
+       !--------------------------------------------------------------------
+       diagID  = 'd2HCH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%d2HCH4,                              &
+            archiveData    = State_Diag%Archive_d2HCH4,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Percent modern carbon (pMC) of methane
+       !--------------------------------------------------------------------
+       diagID  = 'pMCCH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%pMCCH4,                              &
+            archiveData    = State_Diag%Archive_pMCCH4,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Cap delta 14 of methane
+       !--------------------------------------------------------------------
+       diagID  = 'D14CH4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%D14CH4,                              &
+            archiveData    = State_Diag%Archive_D14CH4,                      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       
 #ifdef MODEL_GEOS
        diagID  = 'O3concAfterChem'
        CALL Init_and_Register(                                               &
@@ -13229,11 +13370,36 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'd13CCH4',                                      &
+                   Ptr2Data = State_Diag%d13CCH4,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'd2HCH4',                                      &
+                   Ptr2Data = State_Diag%d2HCH4,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'pMCCH4',                                      &
+                   Ptr2Data = State_Diag%pMCCH4,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'D14CH4',                                      &
+                   Ptr2Data = State_Diag%D14CH4,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+   
+    CALL Finalize( diagId   = 'ClconcAfterChem',                             &
+                   Ptr2Data = State_Diag%ClconcAfterChem,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'OHconcAfterChem',                             &
                    Ptr2Data = State_Diag%OHconcAfterChem,                    &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
-
+    
     CALL Finalize( diagId   = 'O1DconcAfterChem',                            &
                    Ptr2Data = State_Diag%O1DconcAfterChem,                   &
                    RC       = RC                                            )
@@ -15422,6 +15588,35 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  = 3
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'D13CCH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+           'Delta C-13 of methane (vs. VPDB standard)'
+       IF ( isUnits   ) Units = '‰'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'D2HCH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+           'Delta H-2 of methane (vs. VSMOW standard)'
+       IF ( isUnits   ) Units = '‰'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PMCCH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+           'Percent modern carbon (pMC) of radiocarbon in methane (vs. oxalic acid standard and age corrected)'
+       IF ( isUnits   ) Units = '%'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'D14CH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+           'Delta 14 of radiocarbon in methane (vs. oxalic acid standard and age corrected)'
+       IF ( isUnits   ) Units = '‰'
+       IF ( isRank    ) Rank  =  3
+       
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CLCONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Cl concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+       
     ELSE IF ( TRIM( Name_AllCaps ) == 'OHCONCAFTERCHEM' ) THEN
        IF ( isDesc    ) Desc  = 'OH concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'

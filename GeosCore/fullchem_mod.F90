@@ -40,6 +40,8 @@ MODULE FullChem_Mod
   INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
   INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
   INTEGER               :: id_PSO4
+  INTEGER               :: id_12CH4, id_13CH4, id_12CH3D, id_13CH3D, id_14CH4
+  INTEGER               :: id_Cl
 #ifdef TOMAS
   INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
 #endif
@@ -62,7 +64,7 @@ MODULE FullChem_Mod
   INTEGER               :: id_ASOG1, id_ASOG2, id_ASOG3
   INTEGER               :: id_NIT, id_SO4s, id_NITs, id_HNO3
 #endif
-  LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
+  LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P, ok_Cl
   LOGICAL               :: Failed2x
 
   ! Diagnostic flags
@@ -72,6 +74,8 @@ MODULE FullChem_Mod
   LOGICAL               :: Archive_RO2concAfterchem
 #endif
 
+  LOGICAL               :: is_FETCH4
+  
   ! SAVEd scalars
   INTEGER,  SAVE        :: PrevDay   = -1
   INTEGER,  SAVE        :: PrevMonth = -1
@@ -83,6 +87,27 @@ MODULE FullChem_Mod
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
+  ! 13C reference standard for Pee-Dee Belemnite [atom atom-1] [Craig, 1957]
+  REAL(fp), PARAMETER   :: Rs_13C_VPDB = 0.01123720e0_fp
+
+  ! D reference standard for Vienna Mean Standard Ocean Water [atom atom-1]
+  REAL(fp), PARAMETER   :: Rs_D_VSMOW  = 1.5576e-4_fp
+
+  ! Radioactive decay constant for 14C [s-1] = (8267 a)^-1
+  REAL(fp), PARAMETER   :: lambda_14C  = 3.833082e-12_fp
+
+  ! Absolute international standard activity defined for 1950 AD
+  ! in 0.95 NBS oxalic acid [Bq/kgC] [Stuiver, 1980]
+  REAL(fp), PARAMETER   :: A_abs       = 226_fp
+
+  ! LTM TO DO: Set from species_database
+  REAL(fp), PARAMETER   :: MW_CH4    = 16.04215175 ! Assuming made up of only the four isotopologues below
+  REAL(fp), PARAMETER   :: MW_12CH4  = 16.03130013
+  REAL(fp), PARAMETER   :: MW_13CH4  = 17.03465496
+  REAL(fp), PARAMETER   :: MW_12CH3D = 17.03757687
+  REAL(fp), PARAMETER   :: MW_13CH3D = 18.04093171
+  REAL(fp), PARAMETER   :: MW_14CH4  = 18.0
+  
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -103,6 +128,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE HCO_Utilities_GC_Mod,     ONLY : HCO_GC_EvalFld        
     USE ERROR_MOD
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
@@ -180,8 +206,11 @@ CONTAINS
     REAL(fp)               :: TOUT,       SR,        LWC
 
     ! Strings
+    CHARACTER(LEN=63)      :: dgnName        
     CHARACTER(LEN=255)     :: errMsg,     thisLoc
 
+    LOGICAL                :: found
+    
     ! SAVEd scalars
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
@@ -204,6 +233,10 @@ CONTAINS
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
 
+    ! For data read in via HEMCO
+    REAL(fp) :: lsoil(       State_Grid%NX, State_Grid%NY               )
+    REAL(fp) :: ksoil(       State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
@@ -257,6 +290,27 @@ CONTAINS
     Failed2x   = .FALSE.
     doSuppress = .FALSE.
 
+    lsoil      = 0d0
+    ksoil      = 0d0
+
+    ! Update soil loss from HEMCO
+    DgnName = 'CH4_SOILABSORB'
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_SOILABSORB',     &
+                         lsoil,     RC,        found=found           )
+    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+       errMsg = 'Cannot get pointer to HEMCO field CH4_SOILABSORB'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Convert LSOIL [kg m-2 s-1] to KSOIL [s-1]
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       ! Convert from kg/m2/s to 1/s using total methane (still in units of kg here)
+       kSOIL(I,J,1) = LSOIL(I,J) * State_Grid%Area_M2(I,J) / State_Chm%Species(id_CH4)%Conc(I,J,1)
+    ENDDO
+    ENDDO
+    
     ! Print information the first time that DO_FULLCHEM is called
     CALL PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem )
 
@@ -917,6 +971,14 @@ CONTAINS
           IF ( KppID > 0 ) C(KppID) = 0.0_dp
        ENDDO
 
+       !=====================================================================
+       ! Pass loss frequency for soil uptake of bulk methane
+       !=====================================================================
+       IF ( is_FETCH4 ) THEN
+          k_soil = kSOIL(I,J,L)
+       ENDIF
+
+       
        !=====================================================================
        ! Update reaction rates
        !=====================================================================
@@ -2117,11 +2179,13 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE PhysConstants,  ONLY : AVO        
     USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod    
 !
 ! !INPUT PARAMETERS:
 !
@@ -2161,6 +2225,9 @@ CONTAINS
     ! Scalars
     LOGICAL            :: Do_Diag
     INTEGER            :: I,       J,       L
+    REAL(FP)           :: d13,    dD,   atomsH,   atomsD,    Rs, Rs_corr
+    REAL(FP)           :: pMC,   A_S,     A_SN,  A_abs_c,  D14C
+    REAL(FP)           :: gC
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -2191,6 +2258,21 @@ CONTAINS
        State_Diag%RO2concAfterChem = 0.0_f4
     ENDIF
 #endif
+    IF ( State_Diag%Archive_D13CCH4          ) THEN
+       State_Diag%D13CCH4 = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_D2HCH4           ) THEN
+       State_Diag%D2HCH4 = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_PMCCH4           ) THEN
+       State_Diag%PMCCH4 = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_D14CH4           ) THEN
+       State_Diag%D14CH4 = 0.0_f4
+    ENDIF    
+    IF ( State_Diag%Archive_ClconcAfterChem  ) THEN
+       State_Diag%ClconcAfterChem  = 0.0_f4
+    ENDIF    
     IF ( State_Diag%Archive_OHconcAfterChem  ) THEN
        State_Diag%OHconcAfterChem  = 0.0_f4
     ENDIF
@@ -2371,7 +2453,15 @@ CONTAINS
             ENDIF
          ENDIF
 
-
+         !---------------------------------------------------------------
+         ! Cl concentration [molec/cm3]
+         !---------------------------------------------------------------
+         IF ( ok_Cl ) THEN
+            IF ( State_Diag%Archive_ClconcAfterChem ) THEN
+               State_Diag%ClconcAfterChem(I,J,L) = Spc(id_Cl)%Conc(I,J,L)
+            ENDIF
+         ENDIF
+         
          !---------------------------------------------------------------
          ! O3P concentration [molec/cm3]
          !---------------------------------------------------------------
@@ -2386,6 +2476,111 @@ CONTAINS
       ENDDO
 !$OMP END PARALLEL DO
 
+      ! Units are presently molec cm-3
+      
+!!$OMP PARALLEL DO                                                     &
+!!$OMP DEFAULT( SHARED                                                )&
+!!$OMP PRIVATE( I, J, L, Rs, Rs_corr, d13, dD, atomsH, atomsD         )&
+!!$OMP PRIVATE( A_S, A_SN, A_abs_c, D14C, pMC, gC                     )&
+!!$OMP COLLAPSE( 3                                                    )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         d13  = 0d0
+         dD   = 0d0
+         pMC  = 0d0
+         D14C = 0d0
+         
+         !---------------------------------------------------------------
+         ! d13C of Methane (permil)
+         !---------------------------------------------------------------
+         IF ( State_Diag%Archive_d13CCH4 ) THEN
+       
+            ! Calculate molecular ratio of 13C to 12C
+            Rs = ( Spc(id_13CH4)%Conc( I, J, L ) + Spc(id_13CH3D)%Conc( I, J, L ) ) / &
+                 ( Spc(id_12CH4)%Conc( I, J, L ) + Spc(id_12CH3D)%Conc( I, J, L ) )
+            
+            ! Compare to Pee-Dee Belemnite Standard (per mil)
+            d13 = ( ( Rs / Rs_13C_VPDB ) - 1e0_fp ) * 1000e0_fp
+            
+            State_Diag%d13CCH4(I,J,L) = d13
+
+         ENDIF
+
+         !---------------------------------------------------------------
+         ! dD of Methane (permil)
+         !---------------------------------------------------------------
+         IF ( State_Diag%Archive_d2HCH4 ) THEN
+       
+            ! Calculate atomic ratio of D to H
+            atomsD =     Spc(id_12CH3D)%Conc( I, J, L ) + &
+                         Spc(id_13CH3D)%Conc( I, J, L )
+            atomsH = 3 * Spc(id_12CH3D)%Conc( I, J, L ) + &
+                     3 * Spc(id_13CH3D)%Conc( I, J, L ) + &
+                     4 * Spc(id_12CH4 )%Conc( I, J, L ) + &
+                     4 * Spc(id_13CH4 )%Conc( I, J, L )
+             
+            Rs = atomsD / atomsH
+             
+            ! Compare to Vienna Standard Mean Ocean Water (per mil)
+            dD = ( ( Rs / Rs_D_VSMOW ) - 1e0_fp ) * 1000e0_fp
+             
+            ! Archive
+            State_Diag%d2HCH4(I,J,L) = dD
+
+         ENDIF
+
+         !---------------------------------------------------------------
+         ! Percent Modern Carbon (%)
+         !---------------------------------------------------------------
+         IF ( State_Diag%Archive_pMCCH4 ) THEN
+ 
+            ! Normalize to -25‰ (preindustrial d13) to account for
+            ! atmospheric chemistry between 1950 standard and present-day
+            IF ( d13 .eq. 0 ) THEN
+               Rs  = ( Spc(id_13CH4)%Conc( I, J, L ) + Spc(id_13CH3D)%Conc( I, J, L ) ) / &
+                     ( Spc(id_12CH4)%Conc( I, J, L ) + Spc(id_12CH3D)%Conc( I, J, L ) )
+               d13 = ( ( Rs / Rs_13C_VPDB ) - 1e0_fp ) * 1000e0_fp
+            ENDIF
+ 
+            ! Calculate total g C of methane (using NIST values) (molec cm-3 -> g(C))
+            gC = ( Spc(id_12CH4)%Conc(  I, J, L ) * 12.0d0           * State_Met%AIRVOL( I, J, L )*1d6 / AVO ) + &
+                 ( Spc(id_13CH4)%Conc(  I, J, L ) * 13.00335483507d0 * State_Met%AIRVOL( I, J, L )*1d6 / AVO ) + &
+                 ( Spc(id_12CH3D)%Conc( I, J, L ) * 12.0d0           * State_Met%AIRVOL( I, J, L )*1d6 / AVO ) + &
+                 ( Spc(id_13CH3D)%Conc( I, J, L ) * 13.00335483507d0 * State_Met%AIRVOL( I, J, L )*1d6 / AVO ) + &
+                 ( Spc(id_14CH4)%Conc(  I, J, L ) * 14.0032419884d0  * State_Met%AIRVOL( I, J, L )*1d6 / AVO ) 
+            
+            ! Calculate 14C activity (molec cm-3 -> Bq g(C)-1)
+            A_S =   Spc(id_14CH4)%Conc( I, J, L ) * State_Met%AIRVOL( I, J, L ) * 1d6 * lambda_14C / gC
+ 
+            ! Apply d13 normalization
+            A_SN = A_S * ( 0.975d0 / ( 1d0 + (d13/1d3) ) )**2d0
+ 
+            ! Calculate D14CH4 (permil deviation)
+            D14C = ( ( A_SN / 0.2260d0 ) - 1d0 ) * 1000d0
+            
+            ! Archive
+            State_Diag%D14CH4(I,J,L) = D14C
+ 
+            ! pMC for simulation year
+            pMC = 100d0 * ( 1d0 + (D14C/1d3) ) / ( EXP(lambda_14c*(1950-GET_YEAR()) ) )
+ 
+            ! Archive
+            State_Diag%pMCCH4(I,J,L) = pMC
+            
+         ENDIF
+         
+!         IF ( I .eq. 1 .and. J .eq. 1 .and. L .eq. 1 .and. Input_Opt%amIroot ) THEN
+!100         FORMAT( 'ROC: CH4 :', F7.1, ' ppb | δ13-CH4: ', F7.1, ' ‰    |   δD-CH4: ', F7.1, ' ‰   |   pMC-CH4: ', F7.2, ' %  |  D14CH4: ',F7.2, '  ‰'  )
+!            WRITE(6,100) 1e9*Spc(id_CH4)%Conc(I,J,L)/State_Met%AIRNUMDEN(I,J,L),  d13, dD, pMC, D14C
+!         ENDIF
+       
+      ENDDO
+      ENDDO
+      ENDDO
+!!$OMP END PARALLEL DO
+      
       ! Free pointers
       AirNumDen => NULL()
       Spc       => NULL()
@@ -2729,6 +2924,7 @@ CONTAINS
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
+    id_Cl       = Ind_( 'Cl'           )
     id_SO4      = Ind_( 'SO4'          )
     id_SALA     = Ind_( 'SALA'         )
     id_SALAAL   = Ind_( 'SALAAL'       )
@@ -2740,6 +2936,13 @@ CONTAINS
     id_NK10     = Ind_( 'NK10'         )
     id_NK20     = Ind_( 'NK20'         )
 #endif
+
+    is_FETCH4   = Ind_( 'C12H3D', 'A' ) .ne. 0
+    id_12CH4    = Ind_( 'C12H4',  'A' )
+    id_13CH4    = Ind_( 'C13H4',  'A' )
+    id_12CH3D   = Ind_( 'C12H3D', 'A' )
+    id_13CH3D   = Ind_( 'C13H3D', 'A' )
+    id_14CH4    = Ind_( 'C14H4',  'A' )
 
 #ifdef MODEL_GEOS
     ! ckeller
@@ -2810,6 +3013,7 @@ CONTAINS
     ok_O1D      = ( id_O1D > 0         )
     ok_O3P      = ( id_O3P > 0         )
     ok_OH       = ( id_OH  > 0         )
+    ok_Cl       = ( id_Cl  > 0         )
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
     Do_Diag_OH_HO2_O1D_O3P = (                                               &
@@ -2820,7 +3024,12 @@ CONTAINS
                                State_Diag%Archive_OHconcAfterChem       .or. &
                                State_Diag%Archive_HO2concAfterChem      .or. &
                                State_Diag%Archive_O1DconcAfterChem      .or. &
-                               State_Diag%Archive_O3PconcAfterChem          )
+                               State_Diag%Archive_O3PconcAfterChem      .or. &
+                               State_Diag%Archive_ClconcAfterChem       .or. &
+                               State_Diag%Archive_d13CCH4               .or. &
+                               State_Diag%Archive_d2HCH4                .or. &
+                               State_Diag%Archive_pMCCH4                .or. &
+                               State_Diag%Archive_D14CH4                )
 
     !=======================================================================
     ! Save physical parameters from the species database into KPP arrays
