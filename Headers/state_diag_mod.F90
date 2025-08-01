@@ -7329,6 +7329,8 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
+         Input_Opt%ITS_A_FETCH4_SIM                                     .or. &
+         Input_Opt%ITS_AN_ISOTOPE_SIM                                   .or. &
          Input_Opt%ITS_A_CH4_SIM                                        ) THEN
 
        !--------------------------------------------------------------------

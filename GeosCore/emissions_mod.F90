@@ -129,6 +129,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
     USE Input_Opt_Mod,         ONLY : OptInput
+    USE Isotope_Mod,           ONLY : Emiss_Isotope
     USE Mercury_Mod,           ONLY : EmissMercury
     USE Precision_Mod
     USE State_Chm_Mod,         ONLY : ChmState
@@ -270,6 +271,19 @@ CONTAINS
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Emiss_Carbon_Gases"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Isotope Simulation
+    IF ( Input_Opt%ITS_AN_ISOTOPE_SIM ) THEN
+       CALL Emiss_Isotope( Input_Opt,  State_Chm, State_Diag,            &
+                           State_Grid, State_Met, RC                    )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Emiss_Isotope"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

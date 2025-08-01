@@ -406,6 +406,7 @@ CONTAINS
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Isotope_Mod,        ONLY : Init_Isotope
     USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
     USE Mercury_Mod,        ONLY : Init_Mercury
     USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
@@ -644,6 +645,19 @@ CONTAINS
                                State_Grid, RC                                )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Carbon_Gases"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Isotopologue
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_AN_ISOTOPE_SIM ) THEN
+       CALL Init_Isotope( Input_Opt,  State_Chm, State_Diag,             &
+                          State_Grid, RC                                )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Isotope"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

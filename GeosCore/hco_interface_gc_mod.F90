@@ -3607,6 +3607,8 @@ CONTAINS
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
          Input_Opt%ITS_A_CO2_SIM                                        .or. &
          Input_Opt%ITS_A_CH4_SIM                                        .or. &
+         Input_Opt%ITS_A_FETCH4_SIM                                     .or. &
+         Input_Opt%ITS_AN_ISOTOPE_SIM                                   .or. &
          Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
          Input_Opt%ITS_A_POPS_SIM                                       .or. &
          Input_Opt%ITS_A_TAGCO_SIM                                      .or. &

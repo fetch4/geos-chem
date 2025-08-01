@@ -23,6 +23,13 @@ if("${MECH}" STREQUAL fetch4)
 endif()
 
 #-----------------------------------------------------------------------------
+# Build the ISOTOPOLOGUE mechanism if configured with -DMECH=isotope
+#-----------------------------------------------------------------------------
+if("${MECH}" STREQUAL isotope)
+  add_subdirectory(isotope)
+endif()
+
+#-----------------------------------------------------------------------------
 # Build the custom mechanism if configured with -DMECH=custom
 #-----------------------------------------------------------------------------
 if("${MECH}" STREQUAL custom)

@@ -47,6 +47,7 @@ add_library(GeosCore
   hco_interface_gc_mod.F90
   hco_utilities_gc_mod.F90
   input_mod.F90
+  isotope_mod.F90
   aerosol_thermodynamics_mod.F90
   land_mercury_mod.F90
   linear_chem_mod.F90

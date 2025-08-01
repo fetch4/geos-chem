@@ -66,6 +66,7 @@ CONTAINS
     USE FullChem_Mod,     ONLY : Do_FullChem
     USE GLOBAL_CH4_MOD,   ONLY : CHEMCH4
     USE Input_Opt_Mod,    ONLY : OptInput
+    USE Isotope_Mod,      ONLY : Chem_Isotope
     USE AEROSOL_THERMODYNAMICS_MOD,  ONLY : DO_ATE
     USE LINEAR_CHEM_MOD,  ONLY : DO_LINEAR_CHEM
     USE MERCURY_MOD,      ONLY : CHEMMERCURY
@@ -1005,6 +1006,34 @@ CONTAINS
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Chem_Carbon_Gases"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
+
+       !=====================================================================
+       ! Isotope chemistry (configure with -DMECH=isotope)
+       !=====================================================================
+       ELSE IF ( Input_Opt%ITS_AN_ISOTOPE_SIM ) THEN
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
+
+          ! Do isotope chemistry
+          CALL Chem_Isotope( Input_Opt  = Input_Opt,                    &
+                             State_Met  = State_Met,                    &
+                             State_Chm  = State_Chm,                    &
+                             State_Grid = State_Grid,                   &
+                             State_Diag = State_Diag,                   &
+                             RC         = RC                           )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Chem_Isotope"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF

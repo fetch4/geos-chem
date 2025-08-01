@@ -74,7 +74,9 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
+     LOGICAL                     :: ITS_A_FETCH4_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
+     LOGICAL                     :: ITS_AN_ISOTOPE_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
@@ -556,7 +558,9 @@ CONTAINS
     Input_Opt%ITS_A_CARBON_SIM       = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
+    Input_Opt%ITS_A_FETCH4_SIM       = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
+    Input_Opt%ITS_AN_ISOTOPE_SIM     = .FALSE.
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.

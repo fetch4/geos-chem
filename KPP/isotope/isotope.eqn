@@ -1,0 +1,70 @@
+{ isotope.eqn
+===============================================================================
+DESCRIPTION
+===============================================================================
+
+GEOS-Chem KPP file containing species and equations for the carbon
+chemistry mechanism
+
+===============================================================================
+FILE HISTORY
+===============================================================================
+
+v14.1.0 (release TBD)
+---------------------
+(1) Initial version (MSL)
+
+}
+
+#include atoms.kpp     { Periodic table information               }
+
+#DEFVAR
+CH4         = IGNORE;  { Active methane species                   }
+C12H4       = IGNORE;  { 12C-1H-1H-1H-1H                          }
+C12H3D      = IGNORE;  { 12C-2H-1H-1H-1H                          }
+C13H4       = IGNORE;  { 13C-1H-1H-1H-1H                          }
+C13H3D      = IGNORE;  { 13C-2H-1H-1H-1H                          }
+C14H4       = IGNORE;  { radiomethane                             }
+C14O        = IGNORE;  { radiocarbon monoxide                     }
+SF6         = IGNORE;  { Sulfur Hexafluoride                      }
+Dummy       = IGNORE;  { Dummy placeholder product                }
+LCOH        = IGNORE;  { Dummy placeholder product                }
+LCCl        = IGNORE;  { Dummy placeholder product                }
+LCO1D       = IGNORE;  { Dummy placeholder product                }
+LCSOIL      = IGNORE;  { Dummy placeholder product                }
+LCDECAY     = IGNORE;  { Dummy placeholder product                }
+
+#DEFFIX
+FixedOH     = IGNORE;  { Externally-supplied OH concentration     }
+FixedCl     = IGNORE;  { Externally-supplied Cl concentration     }
+FixedO1D    = IGNORE;  { Externally-supplied O(1D) concentration  }
+
+#EQUATIONS
+CH4    + fixedOH  = LCOH    : 2.45d-12*EXP(-1775.0d0/TEMP);                            // Burkholder et al. 2019
+CH4    + fixedCl  = LCCl    : 9.60d-12*EXP(-1360.0d0/TEMP);                            // Kirschke et al. 2013
+CH4    + fixedO1D = LCO1D   : 1.75d-10;                                                // Burkholder et al. 2019
+CH4               = LCSOIL  : k_soil;
+C12H4  + fixedOH  = LCOH    : 2.45d-12*EXP(-1775.0d0/TEMP);                            // Burkholder et al. 2019
+C12H4  + fixedCl  = LCCl    : 9.60d-12*EXP(-1360.0d0/TEMP);                            // Kirschke et al. 2013
+C12H4  + fixedO1D = LCO1D   : 1.75d-10;                                                // Burkholder et al. 2019
+C12H4             = LCSOIL  : k_soil;
+C13H4  + fixedOH  = LCOH    : 2.45d-12*EXP(-1775.0d0/TEMP)/1.0061d0;                   // Whitehill et al. 2017
+C13H4  + fixedCl  = LCCl    : 9.60d-12*EXP(-1360.0d0/TEMP)/1.0621d0;                   // Tyler et al. 2000
+C13H4  + fixedO1D = LCO1D   : 1.75d-10/1.0130d0;                                       // Saueressig et al. 2001
+C13H4             = LCSOIL  : k_soil/1.018d0;                                          // Snover and Quay 2000
+C12H3D + fixedOH  = LCOH    : 3.50d-12*EXP(-1950.0d0/TEMP);                            // Burkholder et al. 2019
+C12H3D + fixedCl  = LCCl    : 9.60d-12*EXP(-1360.0d0/TEMP)/(1.278d0*EXP(51.31/TEMP));  // Saueressig et al. 1996
+C12H3D + fixedO1D = LCO1D   : 1.75d-10/1.0600d0;                                       // Saueressig et al. 2001
+C12H3D            = LCSOIL  : k_soil/1.083d0;                                          // Snover and Quay 2000
+C13H3D + fixedOH  = LCOH    : 2.45d-12*EXP(-1775.0d0/TEMP)/1.34d0;                     // Joelsson et al. 2016
+C13H3D + fixedCl  = LCCl    : 9.60d-12*EXP(-1360.0d0/TEMP)/1.60d0;                     // Joelsson et al. 2014
+C13H3D + fixedO1D = LCO1D   : 1.75d-10/1.0600d0/1.0130d0;                              // Estimate
+C13H3D            = LCSOIL  : k_soil/1.018d0/1.083d0;                   
+C14H4  + fixedOH  = C14O    : 2.45d-12*EXP(-1775.0d0/TEMP)/1.0078d0;                   // Warwick et al. 2016
+C14H4  + fixedCl  = LCCl    : 9.60d-12*EXP(-1360.0d0/TEMP)/1.136d0;                    // Saueressig et al. 1995
+C14H4  + fixedO1D = LCO1D   : 1.75d-10/1.026d0;                                        // Saueressig et al. 2001
+C14H4             = LCSOIL  : k_soil/1.036d0;                                          // Snover and Quay 2000
+C14H4             = LCDECAY      : 3.833082d-12;
+C14O   + fixedOH  = LCOH    : GCJPLPR_abab(6.9d-33,2.1d0,1.1d-12,-1.3d0,0.6d0) +
+                              GCJPLAC_ababac(6.9d-33,2.1d0,1.1d-12,-1.3d0,1.85d-13,-6.5d1,0.6d0);
+C14O              = LCDECAY : 3.833082d-12;

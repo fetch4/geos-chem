@@ -99,14 +99,6 @@ MODULE FullChem_Mod
   ! Absolute international standard activity defined for 1950 AD
   ! in 0.95 NBS oxalic acid [Bq/kgC] [Stuiver, 1980]
   REAL(fp), PARAMETER   :: A_abs       = 226_fp
-
-  ! LTM TO DO: Set from species_database
-  REAL(fp), PARAMETER   :: MW_CH4    = 16.04215175 ! Assuming made up of only the four isotopologues below
-  REAL(fp), PARAMETER   :: MW_12CH4  = 16.03130013
-  REAL(fp), PARAMETER   :: MW_13CH4  = 17.03465496
-  REAL(fp), PARAMETER   :: MW_12CH3D = 17.03757687
-  REAL(fp), PARAMETER   :: MW_13CH3D = 18.04093171
-  REAL(fp), PARAMETER   :: MW_14CH4  = 18.0
   
 CONTAINS
 !EOC
@@ -2478,11 +2470,11 @@ CONTAINS
 
       ! Units are presently molec cm-3
       
-!!$OMP PARALLEL DO                                                     &
-!!$OMP DEFAULT( SHARED                                                )&
-!!$OMP PRIVATE( I, J, L, Rs, Rs_corr, d13, dD, atomsH, atomsD         )&
-!!$OMP PRIVATE( A_S, A_SN, A_abs_c, D14C, pMC, gC                     )&
-!!$OMP COLLAPSE( 3                                                    )
+!$OMP PARALLEL DO                                                     &
+!$OMP DEFAULT( SHARED                                                )&
+!$OMP PRIVATE( I, J, L, Rs, Rs_corr, d13, dD, atomsH, atomsD         )&
+!$OMP PRIVATE( A_S, A_SN, A_abs_c, D14C, pMC, gC                     )&
+!$OMP COLLAPSE( 3                                                    )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -2579,7 +2571,7 @@ CONTAINS
       ENDDO
       ENDDO
       ENDDO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
       
       ! Free pointers
       AirNumDen => NULL()

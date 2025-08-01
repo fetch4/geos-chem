@@ -427,8 +427,10 @@ CONTAINS
          TRIM(Sim) /= 'CARBON'                                         .and. &
          TRIM(Sim) /= 'CH4'                                            .and. &
          TRIM(Sim) /= 'CO2'                                            .and. &
+         TRIM(Sim) /= 'FETCH4'                                         .and. &
          TRIM(Sim) /= 'FULLCHEM'                                       .and. &
          TRIM(Sim) /= 'HG'                                             .and. &
+         TRIM(Sim) /= 'ISOTOPE'                                        .and. &
          TRIM(Sim) /= 'METALS'                                         .and. &
          TRIM(Sim) /= 'POPS'                                           .and. &
          TRIM(Sim) /= 'TAGCO'                                          .and. &
@@ -448,8 +450,10 @@ CONTAINS
     Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
     Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'                   )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
+    Input_Opt%ITS_A_FETCH4_SIM     = ( TRIM(Sim) == 'FETCH4'                )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
+    Input_Opt%ITS_AN_ISOTOPE_SIM   = ( TRIM(Sim) == 'ISOTOPE'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
